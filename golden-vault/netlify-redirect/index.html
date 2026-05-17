@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aurum — Starting Up</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0c0a09;
+      color: #e7e5e4;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 420px;
+    }
+
+    .logo {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+
+    h1 {
+      font-family: Georgia, serif;
+      font-size: 2rem;
+      color: #eab308;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .tagline {
+      color: #78716c;
+      font-size: 0.9rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .status-box {
+      background: #1c1917;
+      border: 1px solid #292524;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .status-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #78716c;
+      margin-bottom: 0.75rem;
+    }
+
+    .status-text {
+      font-size: 1rem;
+      color: #d6d3d1;
+      min-height: 1.4em;
+      transition: opacity 0.3s;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #292524;
+      border-top-color: #eab308;
+      border-radius: 50%;
+      margin: 1.25rem auto;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 3px;
+      background: #292524;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ca8a04, #eab308, #fde047);
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.6s ease;
+    }
+
+    .attempt-counter {
+      font-size: 0.8rem;
+      color: #57534e;
+    }
+
+    .success-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      display: none;
+    }
+
+    .success-msg {
+      color: #4ade80;
+      font-size: 1rem;
+      font-weight: 600;
+      display: none;
+    }
+
+    .error-msg {
+      color: #f87171;
+      font-size: 0.875rem;
+      display: none;
+      margin-top: 1rem;
+    }
+
+    .retry-btn {
+      background: #eab308;
+      color: #1c1917;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      padding: 0.6rem 1.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      display: none;
+      transition: background 0.2s;
+    }
+    .retry-btn:hover { background: #facc15; }
+
+    .open-btn {
+      display: none;
+      background: #eab308;
+      color: #1c1917;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 2rem;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-top: 1rem;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .open-btn:hover { background: #facc15; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🥇</div>
+    <h1>Aurum</h1>
+    <p class="tagline">Gold Store &amp; Investment Platform</p>
+
+    <div class="status-box">
+      <div class="status-label">Server Status</div>
+      <div class="spinner" id="spinner"></div>
+      <div class="status-text" id="statusText">Waking up the server…</div>
+      <div class="success-icon" id="successIcon">✅</div>
+      <div class="success-msg" id="successMsg">Server is ready! Redirecting…</div>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="attempt-counter" id="attemptCounter">Checking server…</div>
+    <div class="error-msg" id="errorMsg">Could not reach the server after several attempts.</div>
+    <button class="retry-btn" id="retryBtn" onclick="startWakeUp()">Try Again</button>
+    <a class="open-btn" id="openBtn" href="#">Open Aurum</a>
+  </div>
+
+  <script>
+    // ─── CONFIG ───────────────────────────────────────────────────────────────
+    // Replace with your actual Render service URL
+    const RENDER_URL = "YOUR_RENDER_URL_HERE"; // e.g. https://golden-vault.onrender.com
+    const HEALTH_PATH = "/health";
+    const MAX_ATTEMPTS = 20;        // ~100s total (20 × 5s)
+    const POLL_INTERVAL_MS = 5000;  // 5 seconds between pings
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const statusMessages = [
+      "Waking up the server…",
+      "Server is booting…",
+      "Initializing database connection…",
+      "Loading gold price data…",
+      "Almost there…",
+      "Finalizing startup…",
+    ];
+
+    let attempt = 0;
+    let timer = null;
+
+    function el(id) { return document.getElementById(id); }
+
+    function setProgress(pct) {
+      el("progressFill").style.width = pct + "%";
+    }
+
+    function setStatus(text) {
+      el("statusText").textContent = text;
+    }
+
+    async function ping() {
+      attempt++;
+      const pct = Math.min(95, (attempt / MAX_ATTEMPTS) * 100);
+      setProgress(pct);
+
+      const msgIdx = Math.min(Math.floor(attempt / 4), statusMessages.length - 1);
+      setStatus(statusMessages[msgIdx]);
+      el("attemptCounter").textContent = `Attempt ${attempt} of ${MAX_ATTEMPTS}…`;
+
+      try {
+        const res = await fetch(RENDER_URL + HEALTH_PATH, {
+          method: "GET",
+          cache: "no-store",
+          signal: AbortSignal.timeout(4000),
+        });
+
+        if (res.ok) {
+          onSuccess();
+          return;
+        }
+      } catch (_) {
+        // still sleeping — keep polling
+      }
+
+      if (attempt >= MAX_ATTEMPTS) {
+        onFailed();
+        return;
+      }
+
+      timer = setTimeout(ping, POLL_INTERVAL_MS);
+    }
+
+    function onSuccess() {
+      clearTimeout(timer);
+      setProgress(100);
+      el("spinner").style.display = "none";
+      el("statusText").style.display = "none";
+      el("successIcon").style.display = "block";
+      el("successMsg").style.display = "block";
+      el("attemptCounter").textContent = "Server online ✓";
+      el("openBtn").href = RENDER_URL;
+      el("openBtn").style.display = "inline-block";
+
+      // Auto-redirect after 1.5s
+      setTimeout(() => {
+        window.location.href = RENDER_URL;
+      }, 1500);
+    }
+
+    function onFailed() {
+      el("spinner").style.display = "none";
+      el("statusText").style.display = "none";
+      el("errorMsg").style.display = "block";
+      el("retryBtn").style.display = "inline-block";
+      el("openBtn").href = RENDER_URL;
+      el("openBtn").style.display = "inline-block";
+      el("openBtn").textContent = "Try Opening Anyway";
+    }
+
+    function startWakeUp() {
+      attempt = 0;
+      clearTimeout(timer);
+      el("spinner").style.display = "block";
+      el("statusText").style.display = "block";
+      el("successIcon").style.display = "none";
+      el("successMsg").style.display = "none";
+      el("errorMsg").style.display = "none";
+      el("retryBtn").style.display = "none";
+      el("openBtn").style.display = "none";
+      setProgress(5);
+      ping();
+    }
+
+    // Kick off immediately
+    startWakeUp();
+  </script>
+</body>
+</html>

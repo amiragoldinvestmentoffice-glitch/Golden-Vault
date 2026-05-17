@@ -1,0 +1,66 @@
+import { Router } from "express";
+import { db } from "../db";
+import { investments } from "../db/schema";
+import { eq } from "drizzle-orm";
+import { requireAuth, getUserId } from "../middleware/auth";
+import { getSpotPricePerGram, generatePriceHistory } from "../lib/goldPrice";
+import { z } from "zod";
+
+export const investmentsRouter = Router();
+investmentsRouter.use(requireAuth);
+
+investmentsRouter.get("/", async (req, res) => {
+  const userId = getUserId(req);
+  const rows = await db
+    .select()
+    .from(investments)
+    .where(eq(investments.userId, userId))
+    .orderBy(investments.createdAt);
+
+  const spotPrice = getSpotPricePerGram();
+  const totalGrams = rows.reduce((s, r) => s + parseFloat(r.gramsAcquired), 0);
+  const totalInvested = rows.reduce((s, r) => s + parseFloat(r.amountUsd), 0);
+  const currentValue = totalGrams * spotPrice;
+  const gainLoss = currentValue - totalInvested;
+  const gainLossPct = totalInvested > 0 ? (gainLoss / totalInvested) * 100 : 0;
+
+  res.json({
+    investments: rows,
+    summary: {
+      totalGrams: parseFloat(totalGrams.toFixed(6)),
+      totalInvested: parseFloat(totalInvested.toFixed(2)),
+      currentValue: parseFloat(currentValue.toFixed(2)),
+      gainLoss: parseFloat(gainLoss.toFixed(2)),
+      gainLossPct: parseFloat(gainLossPct.toFixed(2)),
+      spotPricePerGram: spotPrice,
+    },
+  });
+});
+
+investmentsRouter.get("/price-history", (_req, res) => {
+  res.json(generatePriceHistory(30));
+});
+
+const investSchema = z.object({
+  amountUsd: z.number().positive().min(10),
+});
+
+investmentsRouter.post("/", async (req, res) => {
+  const userId = getUserId(req);
+  const { amountUsd } = investSchema.parse(req.body);
+
+  const spotPrice = getSpotPricePerGram();
+  const gramsAcquired = amountUsd / spotPrice;
+
+  const [investment] = await db
+    .insert(investments)
+    .values({
+      userId,
+      amountUsd: amountUsd.toFixed(2),
+      gramsAcquired: gramsAcquired.toFixed(6),
+      spotPriceAtPurchase: spotPrice.toFixed(4),
+    })
+    .returning();
+
+  res.status(201).json(investment);
+});

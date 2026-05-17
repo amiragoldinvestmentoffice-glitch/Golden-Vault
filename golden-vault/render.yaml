@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: golden-vault-api
+    runtime: node
+    region: frankfurt
+    plan: free
+
+    buildCommand: "cd server && npm install && npm run build && cd ../client && npm install && npm run build"
+    startCommand: "cd server && npm start"
+    healthCheckPath: /health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: "postgresql://neondb_owner:npg_hWMaedC5nP0w@ep-fragrant-flower-alp1s75r-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

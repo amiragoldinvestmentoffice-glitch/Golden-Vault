@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-stone-950 text-stone-100;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3 {
+    @apply font-serif;
+  }
+}
+
+@layer components {
+  .btn-gold {
+    @apply bg-gold-500 hover:bg-gold-400 text-stone-900 font-semibold px-4 py-2 rounded-lg transition-colors;
+  }
+
+  .btn-outline {
+    @apply border border-gold-500 text-gold-400 hover:bg-gold-500/10 px-4 py-2 rounded-lg transition-colors;
+  }
+
+  .card {
+    @apply bg-stone-900 border border-stone-800 rounded-xl;
+  }
+}

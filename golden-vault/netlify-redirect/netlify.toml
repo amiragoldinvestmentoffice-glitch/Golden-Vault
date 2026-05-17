@@ -1,0 +1,12 @@
+# netlify.toml — for the wake-up redirect page only
+[build]
+  publish = "."   # root is the netlify-redirect folder itself
+
+# No redirects needed — the JS handles the redirect to Render
+# Optional: add custom domain headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "no-cache, no-store, must-revalidate"
