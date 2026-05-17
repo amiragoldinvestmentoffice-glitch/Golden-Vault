@@ -1,16 +1,14 @@
 import { Router } from "express";
 import { db } from "../db";
 import { products } from "../db/schema";
-import { eq, like, and } from "drizzle-orm";
+import { eq, like, and, SQL } from "drizzle-orm";
 
 export const productsRouter = Router();
 
 productsRouter.get("/", async (req, res) => {
   const { category, search } = req.query;
 
-  let query = db.select().from(products).$dynamic();
-
-  const conditions = [];
+  const conditions: SQL[] = [];
   if (category && category !== "all") {
     conditions.push(eq(products.category, category as string));
   }
@@ -18,13 +16,9 @@ productsRouter.get("/", async (req, res) => {
     conditions.push(like(products.name, `%${search}%`));
   }
 
-  const rows =
-    conditions.length > 0
-      ? await db
-          .select()
-          .from(products)
-          .where(and(...conditions))
-      : await db.select().from(products);
+  const rows = conditions.length > 0
+    ? await db.select().from(products).where(and(...conditions))
+    : await db.select().from(products);
 
   res.json(rows);
 });
