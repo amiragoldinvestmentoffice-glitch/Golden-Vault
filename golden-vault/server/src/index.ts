@@ -12,25 +12,8 @@ import { priceRouter } from "./routes/price";
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  process.env.NETLIFY_URL,
-  "http://localhost:5173",
-  "http://localhost:3000",
-].filter(Boolean) as string[];
-
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!origin || allowedOrigins.some((o) => origin.startsWith(o))) {
-        cb(null, true);
-      } else {
-        cb(new Error(`CORS: origin ${origin} not allowed`));
-      }
-    },
-    credentials: true,
-  })
-);
+// Allow all origins in production since frontend is served from same domain
+app.use(cors({ origin: true, credentials: true }));
 
 app.use(express.json());
 app.use(clerkAuth);
