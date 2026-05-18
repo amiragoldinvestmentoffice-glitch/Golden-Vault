@@ -36,17 +36,15 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 bg-stone-950/90 backdrop-blur border-b border-stone-800">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
         <Link href="/">
           <span className="flex items-center gap-2 cursor-pointer">
             <span className="text-2xl">🥇</span>
             <span className="font-serif text-xl text-gold-400 font-bold tracking-wide">
-              Aurum
+              Amira Al Dahab
             </span>
           </span>
         </Link>
 
-        {/* Nav links */}
         <div className="hidden md:flex items-center gap-1">
           {navLink("/", "Shop")}
           {navLink("/invest", "Invest", <TrendingUp size={14} />)}
@@ -54,7 +52,6 @@ export default function Navbar() {
           {navLink("/orders", "Orders", <Package size={14} />)}
         </div>
 
-        {/* Right */}
         <div className="flex items-center gap-3">
           <Link href="/cart">
             <span className="relative cursor-pointer text-stone-400 hover:text-gold-400 transition-colors">
