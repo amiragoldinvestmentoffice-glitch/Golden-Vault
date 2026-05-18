@@ -35,30 +35,24 @@ app.use(
 app.use(express.json());
 app.use(clerkAuth);
 
-// Health check (pinged by Netlify wake-up page)
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// API routes
 app.use("/api/products", productsRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/investments", investmentsRouter);
 app.use("/api/price", priceRouter);
 
-// Serve React frontend in production
-// Render runs from repo root; server/dist is compiled output
-// client/dist is built at repo-root/client/dist
 if (process.env.NODE_ENV === "production") {
-  const clientDist = path.resolve(__dirname, "..", "..", "..", "client", "dist");
+  const clientDist = path.resolve(__dirname, "..", "..", "client", "dist");
   app.use(express.static(clientDist));
-  app.get("*splat", (_req, res) => {
+  app.get("*", (_req, res) => {
     res.sendFile(path.join(clientDist, "index.html"));
   });
 }
 
-// Global error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
   if (err.name === "ZodError") {
