@@ -49,7 +49,6 @@ export default function ShopPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header */}
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-serif text-gold-400">Gold Store</h1>
@@ -70,7 +69,6 @@ export default function ShopPage() {
         )}
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
@@ -96,7 +94,6 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Products Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -155,12 +152,12 @@ export default function ShopPage() {
         <div className="text-center py-24 text-stone-500">No products found.</div>
       )}
 
-      {/* Trust Banner — permanent below products */}
+      {/* Trust Banner */}
       <div className="mt-16 flex flex-col items-center">
         <p className="text-gold-400 font-serif text-xl font-bold mb-4">Verified Gold Owner</p>
         <div className="max-w-sm w-full rounded-2xl overflow-hidden border border-gold-500/30 shadow-xl">
           <img
-            src="https://i.imgur.com/V4ceV2X.jpg"
+            src="https://i.imgur.com/KFi4n7z.jpeg"
             alt="Gold Ownership Certificate - Amira Aldahab"
             className="w-full"
           />
