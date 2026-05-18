@@ -5,12 +5,10 @@ export default function TrustPopup() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const show = () => setVisible(true);
-
     const last = localStorage.getItem("trust_popup_last");
     const now = Date.now();
     if (!last || now - parseInt(last) > 30 * 60 * 1000) {
-      setTimeout(show, 2000);
+      setTimeout(() => setVisible(true), 2000);
     }
 
     const interval = setInterval(() => {
@@ -40,7 +38,7 @@ export default function TrustPopup() {
           Verified Gold Owner
         </p>
         <img
-          src="https://i.imgur.com/V4ceV2X.jpg"
+          src="https://i.imgur.com/KFi4n7z.jpeg"
           alt="Gold Ownership Certificate - Amira Aldahab"
           className="w-full rounded-xl border border-gold-500/20"
         />
