@@ -154,6 +154,21 @@ export default function ShopPage() {
       {!isLoading && products.length === 0 && (
         <div className="text-center py-24 text-stone-500">No products found.</div>
       )}
+
+      {/* Trust Banner — permanent below products */}
+      <div className="mt-16 flex flex-col items-center">
+        <p className="text-gold-400 font-serif text-xl font-bold mb-4">Verified Gold Owner</p>
+        <div className="max-w-sm w-full rounded-2xl overflow-hidden border border-gold-500/30 shadow-xl">
+          <img
+            src="https://i.imgur.com/V4ceV2X.jpg"
+            alt="Gold Ownership Certificate - Amira Aldahab"
+            className="w-full"
+          />
+        </div>
+        <p className="text-stone-400 text-sm text-center mt-3">
+          Amira Aldahab — Certified 1kg Fine Gold Owner · Serial AA01357
+        </p>
+      </div>
     </div>
   );
 }
