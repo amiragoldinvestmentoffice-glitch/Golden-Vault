@@ -16,6 +16,7 @@ import SignInPage from "./pages/SignInPage";
 import WalletPage from "./pages/WalletPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import RefundPage from "./pages/RefundPage";
 
 export default function App() {
   const { getToken, isLoaded } = useAuth();
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/wallet" component={WalletPage} />
         <Route path="/terms" component={TermsPage} />
         <Route path="/privacy" component={PrivacyPage} />
+        <Route path="/refund" component={RefundPage} />
         <Route path="/sign-in" component={SignInPage} />
         <Route>
           <div className="flex items-center justify-center h-96 text-stone-400">
@@ -60,6 +62,7 @@ export default function App() {
         <div className="flex justify-center gap-4">
           <a href="/terms" className="hover:text-gold-400 transition-colors">Terms</a>
           <a href="/privacy" className="hover:text-gold-400 transition-colors">Privacy</a>
+          <a href="/refund" className="hover:text-gold-400 transition-colors">Refund Policy</a>
         </div>
       </footer>
     </div>
