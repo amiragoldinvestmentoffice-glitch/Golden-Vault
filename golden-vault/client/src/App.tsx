@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { setAuthToken } from "./lib/api";
 import Navbar from "./components/Navbar";
 import TrustPopup from "./components/TrustPopup";
+import WhatsAppButton from "./components/WhatsAppButton";
 import ShopPage from "./pages/ShopPage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
@@ -39,6 +40,7 @@ export default function App() {
     <div className="min-h-screen bg-stone-950">
       <Navbar />
       <TrustPopup />
+      <WhatsAppButton />
       <Switch>
         <Route path="/" component={ShopPage} />
         <Route path="/products/:id" component={ProductPage} />
