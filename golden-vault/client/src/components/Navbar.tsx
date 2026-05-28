@@ -1,80 +1,182 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { SignedIn, SignedOut, UserButton, SignInButton } from "@clerk/clerk-react";
-import { ShoppingCart, TrendingUp, Package, BarChart2, Wallet } from "lucide-react";
+import { useAuth, UserButton, SignInButton } from "@clerk/clerk-react";
+import { ShoppingCart, Menu, X, Coins, BarChart2, Wallet, Package, Home, Info, Mail, HelpCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
 export default function Navbar() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { isSignedIn, isLoaded } = useAuth();
   const [location] = useLocation();
 
-  const { data: cartItems } = useQuery({
+  const { data: cart } = useQuery({
     queryKey: ["cart"],
-    queryFn: () => api.get("/cart").then((r) => r.data),
-    enabled: true,
-    retry: false,
+    queryFn: () => api("/api/cart"),
+    enabled: isSignedIn,
   });
 
-  const cartCount = Array.isArray(cartItems)
-    ? cartItems.reduce((s: number, i: { quantity: number }) => s + i.quantity, 0)
-    : 0;
+  const cartCount = cart?.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) ?? 0;
 
-  const navLink = (href: string, label: string, icon?: React.ReactNode) => {
-    const active = location === href;
-    return (
-      <Link href={href}>
-        <span
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer
-            ${active ? "bg-gold-500/20 text-gold-400" : "text-stone-400 hover:text-gold-400"}`}
-        >
-          {icon}
-          {label}
-        </span>
-      </Link>
-    );
-  };
+  const navLinks = [
+    { href: "/", label: "Shop", icon: <Home size={16} /> },
+    { href: "/invest", label: "Invest", icon: <Coins size={16} /> },
+    { href: "/portfolio", label: "Portfolio", icon: <BarChart2 size={16} /> },
+    { href: "/wallet", label: "Wallet", icon: <Wallet size={16} /> },
+    { href: "/orders", label: "Orders", icon: <Package size={16} /> },
+  ];
+
+  const moreLinks = [
+    { href: "/about", label: "About", icon: <Info size={16} /> },
+    { href: "/contact", label: "Contact", icon: <Mail size={16} /> },
+    { href: "/faq", label: "FAQ", icon: <HelpCircle size={16} /> },
+  ];
+
+  const isActive = (href: string) =>
+    href === "/" ? location === "/" : location.startsWith(href);
 
   return (
-    <nav className="sticky top-0 z-50 bg-stone-950/90 backdrop-blur border-b border-stone-800">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/">
-          <span className="flex items-center gap-2 cursor-pointer">
-            <span className="text-2xl">🥇</span>
-            <span className="font-serif text-xl text-gold-400 font-bold tracking-wide">
-              Amira Al Dahab
-            </span>
-          </span>
-        </Link>
+    <>
+      <nav className="sticky top-0 z-40 bg-stone-950/95 backdrop-blur border-b border-stone-800">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
 
-        <div className="hidden md:flex items-center gap-1">
-          {navLink("/", "Shop")}
-          {navLink("/invest", "Invest", <TrendingUp size={14} />)}
-          {navLink("/portfolio", "Portfolio", <BarChart2 size={14} />)}
-          {navLink("/orders", "Orders", <Package size={14} />)}
-          {navLink("/wallet", "Wallet", <Wallet size={14} />)}
-        </div>
+            {/* Logo */}
+            <Link href="/">
+              <span className="font-serif text-gold-400 text-lg font-semibold cursor-pointer tracking-wide">
+                ✦ Amira Al Dahab
+              </span>
+            </Link>
 
-        <div className="flex items-center gap-3">
-          <Link href="/cart">
-            <span className="relative cursor-pointer text-stone-400 hover:text-gold-400 transition-colors">
-              <ShoppingCart size={22} />
-              {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-gold-500 text-stone-900 text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                  {cartCount}
+            {/* Desktop nav links */}
+            <div className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => (
+                <Link key={link.href} href={link.href}>
+                  <span
+                    className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
+                      isActive(link.href)
+                        ? "text-gold-400 bg-stone-800"
+                        : "text-stone-400 hover:text-stone-100 hover:bg-stone-800/60"
+                    }`}
+                  >
+                    {link.label}
+                  </span>
+                </Link>
+              ))}
+              {moreLinks.map((link) => (
+                <Link key={link.href} href={link.href}>
+                  <span
+                    className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
+                      isActive(link.href)
+                        ? "text-gold-400 bg-stone-800"
+                        : "text-stone-400 hover:text-stone-100 hover:bg-stone-800/60"
+                    }`}
+                  >
+                    {link.label}
+                  </span>
+                </Link>
+              ))}
+            </div>
+
+            {/* Right side — cart + auth + hamburger */}
+            <div className="flex items-center gap-3">
+              {/* Cart */}
+              <Link href="/cart">
+                <span className="relative cursor-pointer text-stone-400 hover:text-gold-400 transition-colors">
+                  <ShoppingCart size={22} />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-gold-500 text-stone-950 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
                 </span>
-              )}
-            </span>
-          </Link>
+              </Link>
 
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="btn-gold text-sm">Sign In</button>
-            </SignInButton>
-          </SignedOut>
+              {/* Auth */}
+              {isLoaded && (
+                isSignedIn ? (
+                  <UserButton afterSignOutUrl="/" />
+                ) : (
+                  <SignInButton mode="modal">
+                    <button className="btn-gold px-4 py-1.5 text-sm hidden md:block">
+                      Sign In
+                    </button>
+                  </SignInButton>
+                )
+              )}
+
+              {/* Hamburger — mobile only */}
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="md:hidden text-stone-400 hover:text-gold-400 transition-colors p-1"
+                aria-label="Toggle menu"
+              >
+                {menuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-    </nav>
+
+        {/* Mobile dropdown menu */}
+        {menuOpen && (
+          <div className="md:hidden border-t border-stone-800 bg-stone-950 px-4 pb-5 pt-3 space-y-1 animate-fade-in">
+
+            {/* Main nav */}
+            <p className="text-stone-600 text-xs uppercase tracking-widest px-3 pb-1">Navigation</p>
+            {navLinks.map((link) => (
+              <Link key={link.href} href={link.href}>
+                <span
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm cursor-pointer transition-colors ${
+                    isActive(link.href)
+                      ? "text-gold-400 bg-stone-800"
+                      : "text-stone-300 hover:text-stone-100 hover:bg-stone-800/60"
+                  }`}
+                >
+                  {link.icon}
+                  {link.label}
+                </span>
+              </Link>
+            ))}
+
+            {/* Divider */}
+            <div className="border-t border-stone-800 my-2" />
+
+            {/* More links */}
+            <p className="text-stone-600 text-xs uppercase tracking-widest px-3 pb-1">More</p>
+            {moreLinks.map((link) => (
+              <Link key={link.href} href={link.href}>
+                <span
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm cursor-pointer transition-colors ${
+                    isActive(link.href)
+                      ? "text-gold-400 bg-stone-800"
+                      : "text-stone-300 hover:text-stone-100 hover:bg-stone-800/60"
+                  }`}
+                >
+                  {link.icon}
+                  {link.label}
+                </span>
+              </Link>
+            ))}
+
+            {/* Divider */}
+            <div className="border-t border-stone-800 my-2" />
+
+            {/* Auth on mobile */}
+            {isLoaded && !isSignedIn && (
+              <SignInButton mode="modal">
+                <button
+                  onClick={() => setMenuOpen(false)}
+                  className="btn-gold w-full py-3 text-sm mt-1"
+                >
+                  Sign In
+                </button>
+              </SignInButton>
+            )}
+          </div>
+        )}
+      </nav>
+    </>
   );
 }
