@@ -18,6 +18,7 @@ import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import RefundPage from "./pages/RefundPage";
 import FaqPage from "./pages/FaqPage";
+import AboutPage from "./pages/AboutPage";
 
 export default function App() {
   const { getToken, isLoaded } = useAuth();
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/privacy" component={PrivacyPage} />
         <Route path="/refund" component={RefundPage} />
         <Route path="/faq" component={FaqPage} />
+        <Route path="/about" component={AboutPage} />
         <Route path="/sign-in" component={SignInPage} />
         <Route>
           <div className="flex items-center justify-center h-96 text-stone-400">
@@ -62,10 +64,11 @@ export default function App() {
       <footer className="border-t border-stone-800 mt-16 py-8 text-center text-stone-500 text-sm">
         <p className="mb-2">© 2026 Amira Al Dahab. All rights reserved.</p>
         <div className="flex justify-center gap-4 flex-wrap">
+          <a href="/about" className="hover:text-gold-400 transition-colors">About</a>
+          <a href="/faq" className="hover:text-gold-400 transition-colors">FAQ</a>
           <a href="/terms" className="hover:text-gold-400 transition-colors">Terms</a>
           <a href="/privacy" className="hover:text-gold-400 transition-colors">Privacy</a>
           <a href="/refund" className="hover:text-gold-400 transition-colors">Refund Policy</a>
-          <a href="/faq" className="hover:text-gold-400 transition-colors">FAQ</a>
         </div>
       </footer>
     </div>
