@@ -5,6 +5,7 @@ import { setAuthToken } from "./lib/api";
 import Navbar from "./components/Navbar";
 import TrustPopup from "./components/TrustPopup";
 import WhatsAppButton from "./components/WhatsAppButton";
+import GoldTicker from "./components/GoldTicker";
 import ShopPage from "./pages/ShopPage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
@@ -39,6 +40,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-stone-950">
       <Navbar />
+      <GoldTicker />
       <TrustPopup />
       <WhatsAppButton />
       <Switch>
