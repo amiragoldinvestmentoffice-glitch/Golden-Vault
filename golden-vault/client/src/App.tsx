@@ -14,6 +14,7 @@ import PortfolioPage from "./pages/PortfolioPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import SignInPage from "./pages/SignInPage";
 import WalletPage from "./pages/WalletPage";
+import TermsPage from "./pages/TermsPage";
 
 export default function App() {
   const { getToken, isLoaded } = useAuth();
@@ -43,7 +44,7 @@ export default function App() {
         <Route path="/invest" component={InvestPage} />
         <Route path="/portfolio" component={PortfolioPage} />
         <Route path="/wallet" component={WalletPage} />
-        <Route path="/sign-in" component={SignInPage} />
+        <Route path="/terms" component={TermsPage} />
         <Route>
           <div className="flex items-center justify-center h-96 text-stone-400">
             404 — Page not found
