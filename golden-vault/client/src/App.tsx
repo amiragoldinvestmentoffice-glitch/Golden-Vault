@@ -15,6 +15,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import SignInPage from "./pages/SignInPage";
 import WalletPage from "./pages/WalletPage";
 import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 
 export default function App() {
   const { getToken, isLoaded } = useAuth();
@@ -45,12 +46,22 @@ export default function App() {
         <Route path="/portfolio" component={PortfolioPage} />
         <Route path="/wallet" component={WalletPage} />
         <Route path="/terms" component={TermsPage} />
+        <Route path="/privacy" component={PrivacyPage} />
+        <Route path="/sign-in" component={SignInPage} />
         <Route>
           <div className="flex items-center justify-center h-96 text-stone-400">
             404 — Page not found
           </div>
         </Route>
       </Switch>
+
+      <footer className="border-t border-stone-800 mt-16 py-8 text-center text-stone-500 text-sm">
+        <p className="mb-2">© 2026 Amira Al Dahab. All rights reserved.</p>
+        <div className="flex justify-center gap-4">
+          <a href="/terms" className="hover:text-gold-400 transition-colors">Terms</a>
+          <a href="/privacy" className="hover:text-gold-400 transition-colors">Privacy</a>
+        </div>
+      </footer>
     </div>
   );
 }
