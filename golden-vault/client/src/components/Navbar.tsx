@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { SignedIn, SignedOut, UserButton, SignInButton } from "@clerk/clerk-react";
-import { ShoppingCart, TrendingUp, Package, BarChart2 } from "lucide-react";
+import { ShoppingCart, TrendingUp, Package, BarChart2, Wallet } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
@@ -50,6 +50,7 @@ export default function Navbar() {
           {navLink("/invest", "Invest", <TrendingUp size={14} />)}
           {navLink("/portfolio", "Portfolio", <BarChart2 size={14} />)}
           {navLink("/orders", "Orders", <Package size={14} />)}
+          {navLink("/wallet", "Wallet", <Wallet size={14} />)}
         </div>
 
         <div className="flex items-center gap-3">
