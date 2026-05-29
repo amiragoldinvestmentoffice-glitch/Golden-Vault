@@ -1,7 +1,5 @@
 import { Route, Switch } from "wouter";
-import { useAuth } from "@clerk/clerk-react";
-import { useEffect } from "react";
-import { setAuthToken } from "./lib/api";
+import { useAuth } from "./lib/auth";
 import Navbar from "./components/Navbar";
 import TrustPopup from "./components/TrustPopup";
 import GoldTicker from "./components/GoldTicker";
@@ -42,27 +40,22 @@ const waStyle: React.CSSProperties = {
 };
 
 export default function App() {
-  const { getToken, isLoaded } = useAuth();
+  const { loading } = useAuth();
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    const refresh = async () => {
-      const token = await getToken();
-      setAuthToken(token);
-    };
-    refresh();
-    const interval = setInterval(refresh, 50_000);
-    return () => clearInterval(interval);
-  }, [isLoaded, getToken]);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-stone-950 flex items-center justify-center">
+        <div className="text-amber-400 text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-stone-950">
       <Navbar />
       <GoldTicker />
       <TrustPopup />
-      <a href={waLink} style={waStyle} aria-label="WhatsApp">
-        💬
-      </a>
+      <a href={waLink} style={waStyle} aria-label="WhatsApp">💬</a>
       <Switch>
         <Route path="/" component={ShopPage} />
         <Route path="/products/:id" component={ProductPage} />
