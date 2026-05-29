@@ -4,6 +4,8 @@ import { orders, orderItems, cartItems, products } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth, getUserId } from "../middleware/auth";
 import { z } from "zod";
+import { sendOrderConfirmationEmail } from "../lib/email";
+import { clerkClient } from "@clerk/express";
 
 export const ordersRouter = Router();
 ordersRouter.use(requireAuth);
@@ -21,13 +23,11 @@ ordersRouter.get("/", async (req, res) => {
 ordersRouter.get("/:id", async (req, res) => {
   const userId = getUserId(req);
   const orderId = parseInt(req.params.id);
-
   const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
   if (!order || order.userId !== userId) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
-
   const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
   res.json({ ...order, items });
 });
@@ -85,6 +85,29 @@ ordersRouter.post("/checkout", async (req, res) => {
 
   // Clear cart
   await db.delete(cartItems).where(eq(cartItems.userId, userId));
+
+  // Send confirmation email — never block the order response
+  try {
+    const clerkUser = await clerkClient.users.getUser(userId);
+    const customerEmail = clerkUser.emailAddresses?.[0]?.emailAddress ?? "";
+    const customerName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || data.shippingName;
+
+    if (customerEmail) {
+      await sendOrderConfirmationEmail({
+        customerEmail,
+        customerName,
+        orderId: order.id,
+        items: cart.map((row) => ({
+          name: row.product.name,
+          quantity: row.cartItem.quantity,
+          price: parseFloat(row.product.priceUsd),
+        })),
+        total,
+      });
+    }
+  } catch (emailErr) {
+    console.error("Email send failed (order still succeeded):", emailErr);
+  }
 
   res.status(201).json(order);
 });
