@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { TrendingUp, TrendingDown, BarChart2 } from "lucide-react";
-import { useAuth, SignInButton } from "@clerk/clerk-react";
+import { useAuth } from "../lib/auth";
+import { Link } from "wouter";
 
 interface Summary {
   totalGrams: number;
@@ -14,12 +15,12 @@ interface Summary {
 }
 
 export default function PortfolioPage() {
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
 
   const { data, isLoading } = useQuery<{ investments: unknown[]; summary: Summary }>({
     queryKey: ["investments"],
     queryFn: () => api.get("/investments").then((r) => r.data),
-    enabled: isSignedIn === true,
+    enabled: !!user,
   });
 
   const { data: history = [] } = useQuery<Array<{ date: string; price: number }>>({
@@ -27,14 +28,12 @@ export default function PortfolioPage() {
     queryFn: () => api.get("/investments/price-history").then((r) => r.data),
   });
 
-  if (!isSignedIn) {
+  if (!user) {
     return (
       <div className="max-w-lg mx-auto px-4 py-24 text-center">
         <BarChart2 size={40} className="mx-auto mb-4 text-gold-500 opacity-70" />
         <p className="text-stone-400 mb-4">Sign in to view your portfolio</p>
-        <SignInButton mode="modal">
-          <button className="btn-gold">Sign In</button>
-        </SignInButton>
+        <Link href="/sign-in"><button className="btn-gold">Sign In</button></Link>
       </div>
     );
   }
@@ -60,15 +59,7 @@ export default function PortfolioPage() {
           ].map(([label, value, isGain]) => (
             <div key={label as string} className="card p-4">
               <div className="text-xs text-stone-500 uppercase tracking-wide">{label}</div>
-              <div
-                className={`text-lg font-semibold mt-1 ${
-                  isGain === null
-                    ? "text-stone-100"
-                    : isGain
-                    ? "text-emerald-400"
-                    : "text-red-400"
-                }`}
-              >
+              <div className={`text-lg font-semibold mt-1 ${isGain === null ? "text-stone-100" : isGain ? "text-emerald-400" : "text-red-400"}`}>
                 {value}
               </div>
               {label === "Gain / Loss" && s && (
@@ -82,11 +73,10 @@ export default function PortfolioPage() {
         </div>
       ) : (
         <div className="card p-8 text-center text-stone-500 mb-6">
-          No investments yet. <a href="/invest" className="text-gold-400 hover:underline">Start investing →</a>
+          No investments yet. <Link href="/invest"><a href="/invest" className="text-gold-400 hover:underline">Start investing →</a></Link>
         </div>
       )}
 
-      {/* Price History Chart */}
       <div className="card p-5">
         <h2 className="font-medium text-stone-200 mb-4">30-Day Gold Price (USD/oz)</h2>
         <ResponsiveContainer width="100%" height={220}>
@@ -97,33 +87,10 @@ export default function PortfolioPage() {
                 <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis
-              dataKey="date"
-              tick={{ fill: "#78716c", fontSize: 11 }}
-              tickFormatter={(d) => d.slice(5)}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              tick={{ fill: "#78716c", fontSize: 11 }}
-              domain={["auto", "auto"]}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(v) => `$${v.toLocaleString()}`}
-            />
-            <Tooltip
-              contentStyle={{ background: "#1c1917", border: "1px solid #292524", borderRadius: 8 }}
-              labelStyle={{ color: "#a8a29e" }}
-              itemStyle={{ color: "#eab308" }}
-              formatter={(v: number) => [`$${v.toLocaleString()}`, "Price"]}
-            />
-            <Area
-              type="monotone"
-              dataKey="price"
-              stroke="#eab308"
-              strokeWidth={2}
-              fill="url(#goldGrad)"
-            />
+            <XAxis dataKey="date" tick={{ fill: "#78716c", fontSize: 11 }} tickFormatter={(d) => d.slice(5)} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: "#78716c", fontSize: 11 }} domain={["auto", "auto"]} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v.toLocaleString()}`} />
+            <Tooltip contentStyle={{ background: "#1c1917", border: "1px solid #292524", borderRadius: 8 }} labelStyle={{ color: "#a8a29e" }} itemStyle={{ color: "#eab308" }} formatter={(v: number) => [`$${v.toLocaleString()}`, "Price"]} />
+            <Area type="monotone" dataKey="price" stroke="#eab308" strokeWidth={2} fill="url(#goldGrad)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
