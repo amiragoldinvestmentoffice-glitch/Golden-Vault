@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import path from "path";
-import { clerkAuth } from "./middleware/auth";
+import { supabaseAuth } from "./middleware/auth";
 import { productsRouter } from "./routes/products";
 import { cartRouter } from "./routes/cart";
 import { ordersRouter } from "./routes/orders";
@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 8080;
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
-app.use(clerkAuth);
+app.use(supabaseAuth);
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
