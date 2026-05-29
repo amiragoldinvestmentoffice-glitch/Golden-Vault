@@ -1,8 +1,11 @@
 import { Link } from "wouter";
+import SEO from "../components/SEO";
 
 export default function AboutPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
+      <SEO title="About Us" description="Learn about Amira Al Dahab, Dubai's trusted gold investment office. Premium gold trading with integrity and expertise." />
+
       <Link href="/"><span className="text-gold-400 hover:underline cursor-pointer text-sm">← Back to Shop</span></Link>
 
       <h1 className="text-3xl font-serif text-gold-400 mt-4 mb-2">About Amira Al Dahab</h1>
