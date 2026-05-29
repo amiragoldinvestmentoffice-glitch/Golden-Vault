@@ -4,6 +4,8 @@ import { api } from "../lib/api";
 import { ShoppingCart, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@clerk/clerk-react";
+import ReviewSection from "../components/ReviewSection";
+import SEO from "../components/SEO";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +45,8 @@ export default function ProductPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      <SEO title={product.name} description={product.description} />
+
       <Link href="/">
         <span className="flex items-center gap-2 text-stone-400 hover:text-gold-400 mb-6 cursor-pointer text-sm">
           <ArrowLeft size={16} /> Back to Shop
@@ -57,14 +61,12 @@ export default function ProductPage() {
             <div className="w-full h-full flex items-center justify-center text-6xl">🥇</div>
           )}
         </div>
-
         <div>
           <span className="text-xs text-gold-600 uppercase tracking-wider font-medium">
             {product.category}
           </span>
           <h1 className="text-2xl font-serif text-stone-100 mt-2">{product.name}</h1>
           <p className="text-stone-400 mt-3 leading-relaxed">{product.description}</p>
-
           <div className="grid grid-cols-2 gap-3 mt-6">
             {[
               ["Weight", `${parseFloat(product.weightGrams).toFixed(3)}g`],
@@ -78,7 +80,6 @@ export default function ProductPage() {
               </div>
             ))}
           </div>
-
           <div className="mt-6 flex items-center justify-between">
             <div>
               <div className="text-stone-500 text-sm">Price</div>
@@ -97,6 +98,8 @@ export default function ProductPage() {
           </div>
         </div>
       </div>
+
+      <ReviewSection productId={parseInt(id)} />
     </div>
   );
 }
