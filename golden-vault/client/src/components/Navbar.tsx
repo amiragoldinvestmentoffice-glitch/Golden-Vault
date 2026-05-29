@@ -1,22 +1,22 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth, UserButton, SignInButton } from "@clerk/clerk-react";
-import { ShoppingCart, Menu, X, Coins, BarChart2, Wallet, Package, Home, Info, Mail, HelpCircle } from "lucide-react";
+import { useAuth } from "../lib/auth";
+import { ShoppingCart, Menu, X, Coins, BarChart2, Wallet, Package, Home, Info, Mail, HelpCircle, LogOut, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const { isSignedIn, isLoaded } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [location] = useLocation();
 
   const { data: cart } = useQuery({
     queryKey: ["cart"],
-    queryFn: () => api("/api/cart"),
-    enabled: isSignedIn,
+    queryFn: () => api.get("/cart").then(r => r.data),
+    enabled: !!user,
   });
 
-  const cartCount = cart?.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) ?? 0;
+  const cartCount = Array.isArray(cart) ? cart.reduce((sum: number, item: any) => sum + item.quantity, 0) : 0;
 
   const navLinks = [
     { href: "/", label: "Shop", icon: <Home size={16} /> },
@@ -43,35 +43,21 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link href="/">
-              <span className="font-serif text-gold-400 text-lg font-semibold cursor-pointer tracking-wide">
-                ✦ Amira Al Dahab
-              </span>
+              <span className="font-serif text-gold-400 text-lg font-semibold cursor-pointer tracking-wide">✦ Amira Al Dahab</span>
             </Link>
 
             {/* Desktop nav links */}
             <div className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => (
                 <Link key={link.href} href={link.href}>
-                  <span
-                    className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
-                      isActive(link.href)
-                        ? "text-gold-400 bg-stone-800"
-                        : "text-stone-400 hover:text-stone-100 hover:bg-stone-800/60"
-                    }`}
-                  >
+                  <span className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${isActive(link.href) ? "text-gold-400 bg-stone-800" : "text-stone-400 hover:text-stone-100 hover:bg-stone-800/60"}`}>
                     {link.label}
                   </span>
                 </Link>
               ))}
               {moreLinks.map((link) => (
                 <Link key={link.href} href={link.href}>
-                  <span
-                    className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${
-                      isActive(link.href)
-                        ? "text-gold-400 bg-stone-800"
-                        : "text-stone-400 hover:text-stone-100 hover:bg-stone-800/60"
-                    }`}
-                  >
+                  <span className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors ${isActive(link.href) ? "text-gold-400 bg-stone-800" : "text-stone-400 hover:text-stone-100 hover:bg-stone-800/60"}`}>
                     {link.label}
                   </span>
                 </Link>
@@ -93,24 +79,21 @@ export default function Navbar() {
               </Link>
 
               {/* Auth */}
-              {isLoaded && (
-                isSignedIn ? (
-                  <UserButton afterSignOutUrl="/" />
+              {!loading && (
+                user ? (
+                  <div className="hidden md:flex items-center gap-2">
+                    <span className="text-stone-400 text-sm flex items-center gap-1"><User size={14} />{user.email?.split("@")[0]}</span>
+                    <button onClick={() => signOut()} className="text-stone-400 hover:text-red-400 transition-colors" title="Sign out"><LogOut size={18} /></button>
+                  </div>
                 ) : (
-                  <SignInButton mode="modal">
-                    <button className="btn-gold px-4 py-1.5 text-sm hidden md:block">
-                      Sign In
-                    </button>
-                  </SignInButton>
+                  <Link href="/sign-in">
+                    <button className="btn-gold px-4 py-1.5 text-sm hidden md:block">Sign In</button>
+                  </Link>
                 )
               )}
 
               {/* Hamburger — mobile only */}
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="md:hidden text-stone-400 hover:text-gold-400 transition-colors p-1"
-                aria-label="Toggle menu"
-              >
+              <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-stone-400 hover:text-gold-400 transition-colors p-1" aria-label="Toggle menu">
                 {menuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
             </div>
@@ -120,59 +103,34 @@ export default function Navbar() {
         {/* Mobile dropdown menu */}
         {menuOpen && (
           <div className="md:hidden border-t border-stone-800 bg-stone-950 px-4 pb-5 pt-3 space-y-1 animate-fade-in">
-
-            {/* Main nav */}
             <p className="text-stone-600 text-xs uppercase tracking-widest px-3 pb-1">Navigation</p>
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href}>
-                <span
-                  onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm cursor-pointer transition-colors ${
-                    isActive(link.href)
-                      ? "text-gold-400 bg-stone-800"
-                      : "text-stone-300 hover:text-stone-100 hover:bg-stone-800/60"
-                  }`}
-                >
-                  {link.icon}
-                  {link.label}
+                <span onClick={() => setMenuOpen(false)} className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm cursor-pointer transition-colors ${isActive(link.href) ? "text-gold-400 bg-stone-800" : "text-stone-300 hover:text-stone-100 hover:bg-stone-800/60"}`}>
+                  {link.icon}{link.label}
                 </span>
               </Link>
             ))}
-
-            {/* Divider */}
             <div className="border-t border-stone-800 my-2" />
-
-            {/* More links */}
             <p className="text-stone-600 text-xs uppercase tracking-widest px-3 pb-1">More</p>
             {moreLinks.map((link) => (
               <Link key={link.href} href={link.href}>
-                <span
-                  onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm cursor-pointer transition-colors ${
-                    isActive(link.href)
-                      ? "text-gold-400 bg-stone-800"
-                      : "text-stone-300 hover:text-stone-100 hover:bg-stone-800/60"
-                  }`}
-                >
-                  {link.icon}
-                  {link.label}
+                <span onClick={() => setMenuOpen(false)} className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm cursor-pointer transition-colors ${isActive(link.href) ? "text-gold-400 bg-stone-800" : "text-stone-300 hover:text-stone-100 hover:bg-stone-800/60"}`}>
+                  {link.icon}{link.label}
                 </span>
               </Link>
             ))}
-
-            {/* Divider */}
             <div className="border-t border-stone-800 my-2" />
-
-            {/* Auth on mobile */}
-            {isLoaded && !isSignedIn && (
-              <SignInButton mode="modal">
-                <button
-                  onClick={() => setMenuOpen(false)}
-                  className="btn-gold w-full py-3 text-sm mt-1"
-                >
-                  Sign In
+            {!loading && (
+              user ? (
+                <button onClick={() => { signOut(); setMenuOpen(false); }} className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm text-red-400 hover:bg-stone-800/60 w-full transition-colors">
+                  <LogOut size={16} />Sign Out
                 </button>
-              </SignInButton>
+              ) : (
+                <Link href="/sign-in">
+                  <button onClick={() => setMenuOpen(false)} className="btn-gold w-full py-3 text-sm mt-1">Sign In</button>
+                </Link>
+              )
             )}
           </div>
         )}
