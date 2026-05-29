@@ -14,6 +14,8 @@ export default function OrderDetailPage() {
   if (isLoading) return <div className="max-w-2xl mx-auto px-4 py-8"><div className="card h-60 animate-pulse" /></div>;
   if (!order) return <div className="max-w-2xl mx-auto px-4 py-8 text-center text-stone-400">Order not found</div>;
 
+  const shipping = order.shipping_address ?? {};
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <Link href="/orders">
@@ -27,15 +29,14 @@ export default function OrderDetailPage() {
           <CheckCircle className="text-emerald-400" size={24} />
           <div>
             <h1 className="text-xl font-serif text-stone-100">Order #{order.id} Confirmed</h1>
-            <p className="text-stone-500 text-sm">{new Date(order.createdAt).toLocaleString()}</p>
+            <p className="text-stone-500 text-sm">{new Date(order.created_at).toLocaleString()}</p>
           </div>
         </div>
-
         <div className="grid grid-cols-2 gap-3 mb-4">
           {[
-            ["Ship to", order.shippingName],
-            ["Address", `${order.shippingCity}, ${order.shippingCountry}`],
-            ["Payment", order.paymentMethod.replace("_", " ")],
+            ["Ship to", shipping.name ?? "—"],
+            ["Address", `${shipping.city ?? "—"}, ${shipping.country ?? "—"}`],
+            ["Payment", (shipping.paymentMethod ?? "—").replace("_", " ")],
             ["Status", order.status],
           ].map(([label, value]) => (
             <div key={label} className="bg-stone-800/50 rounded-lg p-3">
@@ -49,22 +50,16 @@ export default function OrderDetailPage() {
       <div className="card p-5">
         <h2 className="font-medium text-stone-200 mb-3">Items</h2>
         <div className="space-y-2">
-          {order.items?.map((item: { id: number; productName: string; quantity: number; priceUsd: string }) => (
-            <div key={item.id} className="flex justify-between py-2 border-b border-stone-800 last:border-0">
-              <span className="text-stone-300 text-sm">
-                {item.productName} × {item.quantity}
-              </span>
-              <span className="text-gold-400 text-sm font-medium">
-                ${(parseFloat(item.priceUsd) * item.quantity).toLocaleString()}
-              </span>
+          {order.items?.map((item: { productId: number; name: string; quantity: number; price: number }, idx: number) => (
+            <div key={idx} className="flex justify-between py-2 border-b border-stone-800 last:border-0">
+              <span className="text-stone-300 text-sm">{item.name} × {item.quantity}</span>
+              <span className="text-gold-400 text-sm font-medium">${(item.price * item.quantity).toLocaleString()}</span>
             </div>
           ))}
         </div>
         <div className="flex justify-between mt-3 pt-3 border-t border-stone-700">
           <span className="font-medium text-stone-300">Total</span>
-          <span className="text-gold-400 font-semibold text-lg">
-            ${parseFloat(order.totalUsd).toLocaleString()}
-          </span>
+          <span className="text-gold-400 font-semibold text-lg">${parseFloat(order.total_usd).toLocaleString()}</span>
         </div>
       </div>
     </div>
