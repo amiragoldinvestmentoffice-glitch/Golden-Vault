@@ -28,7 +28,10 @@ ordersRouter.get("/:id", async (req, res) => {
     res.status(404).json({ error: "Order not found" });
     return;
   }
-  const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+  const items = await db
+    .select()
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
   res.json({ ...order, items });
 });
 
@@ -57,7 +60,8 @@ ordersRouter.post("/checkout", async (req, res) => {
   }
 
   const total = cart.reduce(
-    (sum, row) => sum + parseFloat(row.product.priceUsd) * row.cartItem.quantity,
+    (sum, row) =>
+      sum + parseFloat(row.product.priceUsd) * row.cartItem.quantity,
     0
   );
 
@@ -89,8 +93,12 @@ ordersRouter.post("/checkout", async (req, res) => {
   // Send confirmation email — never block the order response
   try {
     const clerkUser = await clerkClient.users.getUser(userId);
-    const customerEmail = clerkUser.emailAddresses?.[0]?.emailAddress ?? "";
-    const customerName = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ") || data.shippingName;
+    const customerEmail =
+      clerkUser.emailAddresses?.[0]?.emailAddress ?? "";
+    const customerName =
+      [clerkUser.firstName, clerkUser.lastName]
+        .filter(Boolean)
+        .join(" ") || data.shippingName;
 
     if (customerEmail) {
       await sendOrderConfirmationEmail({
