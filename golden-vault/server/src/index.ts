@@ -26,7 +26,7 @@ app.use("/api/cart", cartRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/investments", investmentsRouter);
 app.use("/api/price", priceRouter);
-app.use(adminRouter);
+app.use("/api/admin", adminRouter);
 
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.resolve(process.cwd(), "..", "client", "dist");
