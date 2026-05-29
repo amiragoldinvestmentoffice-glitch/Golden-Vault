@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { Link } from "wouter";
-import { ShoppingCart, Search } from "lucide-react";
+import { ShoppingCart, Search, Star } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { useQueryClient } from "@tanstack/react-query";
 import SEO from "../components/SEO";
@@ -19,6 +19,11 @@ interface Product {
   category: string;
   imageUrl: string;
   inStock: boolean;
+}
+
+interface ReviewSummary {
+  avgRating: number;
+  count: number;
 }
 
 export default function ShopPage() {
@@ -39,6 +44,11 @@ export default function ShopPage() {
     refetchInterval: 30_000,
   });
 
+  const { data: reviewsSummary = {} } = useQuery<Record<number, ReviewSummary>>({
+    queryKey: ["reviews-summary"],
+    queryFn: () => api.get("/products/reviews/summary").then((r) => r.data),
+  });
+
   const addToCart = async (productId: number) => {
     if (!isSignedIn) {
       alert("Please sign in to add items to cart");
@@ -55,19 +65,13 @@ export default function ShopPage() {
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-serif text-gold-400">Gold Store</h1>
-          <p className="text-stone-400 mt-1">
-            Premium gold products — bars, coins, and jewelry
-          </p>
+          <p className="text-stone-400 mt-1">Premium gold products — bars, coins, and jewelry</p>
         </div>
         {price && (
           <div className="card px-4 py-3 text-sm">
             <span className="text-stone-400">Spot Price: </span>
-            <span className="text-gold-400 font-semibold">
-              ${parseFloat(price.perOz).toLocaleString()}/oz
-            </span>
-            <span className="text-stone-500 ml-2">
-              (${parseFloat(price.perGram).toFixed(2)}/g)
-            </span>
+            <span className="text-gold-400 font-semibold">${parseFloat(price.perOz).toLocaleString()}/oz</span>
+            <span className="text-stone-500 ml-2">(${parseFloat(price.perGram).toFixed(2)}/g)</span>
           </div>
         )}
       </div>
@@ -88,8 +92,7 @@ export default function ShopPage() {
             <button
               key={cat}
               onClick={() => setCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors
-                ${category === cat ? "bg-gold-500 text-stone-900" : "bg-stone-900 border border-stone-800 text-stone-400 hover:border-gold-500"}`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${category === cat ? "bg-gold-500 text-stone-900" : "bg-stone-900 border border-stone-800 text-stone-400 hover:border-gold-500"}`}
             >
               {cat}
             </button>
@@ -110,11 +113,7 @@ export default function ShopPage() {
               <Link href={`/products/${product.id}`}>
                 <div className="h-48 bg-stone-800 overflow-hidden cursor-pointer">
                   {product.imageUrl ? (
-                    <img
-                      src={product.imageUrl}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl">🥇</div>
                   )}
@@ -129,13 +128,19 @@ export default function ShopPage() {
                     {product.name}
                   </h3>
                 </Link>
-                <p className="text-stone-500 text-xs mt-1">
-                  {parseFloat(product.weightGrams).toFixed(1)}g
-                </p>
+                <p className="text-stone-500 text-xs mt-1">{parseFloat(product.weightGrams).toFixed(1)}g</p>
+                {reviewsSummary[product.id]?.count > 0 && (
+                  <div className="flex items-center gap-1 mt-1.5">
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} size={11} className={s <= Math.round(reviewsSummary[product.id].avgRating) ? "text-gold-400 fill-gold-400" : "text-stone-700"} />
+                      ))}
+                    </div>
+                    <span className="text-xs text-stone-500">({reviewsSummary[product.id].count})</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-gold-400 font-semibold">
-                    ${parseFloat(product.priceUsd).toLocaleString()}
-                  </span>
+                  <span className="text-gold-400 font-semibold">${parseFloat(product.priceUsd).toLocaleString()}</span>
                   <button
                     onClick={() => addToCart(product.id)}
                     disabled={!product.inStock}
@@ -155,15 +160,10 @@ export default function ShopPage() {
         <div className="text-center py-24 text-stone-500">No products found.</div>
       )}
 
-      {/* Trust Banner */}
       <div className="mt-16 flex flex-col items-center">
         <p className="text-gold-400 font-serif text-xl font-bold mb-4">Verified Gold Owner</p>
         <div className="max-w-sm w-full rounded-2xl overflow-hidden border border-gold-500/30 shadow-xl">
-          <img
-            src="https://i.imgur.com/KFi4n7z.jpeg"
-            alt="Gold Ownership Certificate - Amira Aldahab"
-            className="w-full"
-          />
+          <img src="https://i.imgur.com/KFi4n7z.jpeg" alt="Gold Ownership Certificate - Amira Aldahab" className="w-full" />
         </div>
         <p className="text-stone-400 text-sm text-center mt-3">
           Amira Aldahab — Certified 1kg Fine Gold Owner · Serial AA01357
