@@ -1,30 +1,48 @@
 import { Router } from "express";
-import { db } from "../db";
-import { orders } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { createClient } from "@supabase/supabase-js";
 import { requireAuth } from "../middleware/auth";
 import { requireAdmin } from "../middleware/requireAdmin";
-import { clerkClient } from "@clerk/express";
 import { z } from "zod";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const router = Router();
 router.use(requireAuth);
 router.use(requireAdmin);
 
 router.get("/orders", async (_req, res) => {
-  const rows = await db.select().from(orders).orderBy(orders.createdAt);
-  res.json(rows.reverse());
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  res.json(data);
 });
 
 router.get("/users", async (_req, res) => {
-  const response = await clerkClient.users.getUserList({ limit: 100 });
-  const users = response.data.map((u) => ({
+  const { data: { users }, error } = await supabase.auth.admin.listUsers();
+
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  const mapped = users.map((u) => ({
     id: u.id,
-    email: u.emailAddresses?.[0]?.emailAddress ?? "",
-    name: [u.firstName, u.lastName].filter(Boolean).join(" ") || "No name",
-    createdAt: u.createdAt,
+    email: u.email ?? "",
+    name: u.user_metadata?.full_name || u.user_metadata?.name || u.email || "No name",
+    createdAt: u.created_at,
   }));
-  res.json(users);
+
+  res.json(mapped);
 });
 
 const statusSchema = z.object({
@@ -34,16 +52,20 @@ const statusSchema = z.object({
 router.patch("/orders/:id", async (req, res) => {
   const orderId = parseInt(req.params.id);
   const { status } = statusSchema.parse(req.body);
-  const [updated] = await db
-    .update(orders)
-    .set({ status })
-    .where(eq(orders.id, orderId))
-    .returning();
-  if (!updated) {
+
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ status })
+    .eq("id", orderId)
+    .select()
+    .single();
+
+  if (error || !data) {
     res.status(404).json({ error: "Order not found" });
     return;
   }
-  res.json(updated);
+
+  res.json(data);
 });
 
 export default router;
