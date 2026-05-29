@@ -1,25 +1,34 @@
 import { Router } from "express";
-import { db } from "../db";
-import { investments } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { createClient } from "@supabase/supabase-js";
 import { requireAuth, getUserId } from "../middleware/auth";
 import { getSpotPricePerGram, generatePriceHistory } from "../lib/goldPrice";
 import { z } from "zod";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export const investmentsRouter = Router();
 investmentsRouter.use(requireAuth);
 
 investmentsRouter.get("/", async (req, res) => {
   const userId = getUserId(req);
-  const rows = await db
-    .select()
-    .from(investments)
-    .where(eq(investments.userId, userId))
-    .orderBy(investments.createdAt);
+
+  const { data: rows, error } = await supabase
+    .from("investments")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
 
   const spotPrice = getSpotPricePerGram();
-  const totalGrams = rows.reduce((s, r) => s + parseFloat(r.gramsAcquired), 0);
-  const totalInvested = rows.reduce((s, r) => s + parseFloat(r.amountUsd), 0);
+  const totalGrams = rows.reduce((s, r) => s + parseFloat(r.grams_acquired), 0);
+  const totalInvested = rows.reduce((s, r) => s + parseFloat(r.amount_usd), 0);
   const currentValue = totalGrams * spotPrice;
   const gainLoss = currentValue - totalInvested;
   const gainLossPct = totalInvested > 0 ? (gainLoss / totalInvested) * 100 : 0;
@@ -48,19 +57,11 @@ const investSchema = z.object({
 investmentsRouter.post("/", async (req, res) => {
   const userId = getUserId(req);
   const { amountUsd } = investSchema.parse(req.body);
-
   const spotPrice = getSpotPricePerGram();
   const gramsAcquired = amountUsd / spotPrice;
 
-  const [investment] = await db
-    .insert(investments)
-    .values({
-      userId,
-      amountUsd: amountUsd.toFixed(2),
-      gramsAcquired: gramsAcquired.toFixed(6),
-      spotPriceAtPurchase: spotPrice.toFixed(4),
-    })
-    .returning();
-
-  res.status(201).json(investment);
-});
+  const { data, error } = await supabase
+    .from("investments")
+    .insert({
+      user_id: userId,
+      amount_usd: amou
