@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import SEO from "../components/SEO";
 
 const faqs = [
   { q: "How do I buy gold?", a: "Browse our Shop, add items to your cart, sign in, and proceed to checkout. We accept bank transfer, cryptocurrency, and credit/debit card." },
@@ -20,10 +21,11 @@ export default function FaqPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
+      <SEO title="FAQ" description="Frequently asked questions about buying gold, shipping, payments and returns at Amira Al Dahab." />
+
       <Link href="/"><span className="text-gold-400 hover:underline cursor-pointer text-sm">← Back to Shop</span></Link>
       <h1 className="text-3xl font-serif text-gold-400 mt-4 mb-2">Frequently Asked Questions</h1>
       <p className="text-stone-400 mb-8">Everything you need to know about Amira Al Dahab.</p>
-
       <div className="space-y-3">
         {faqs.map((faq, i) => (
           <div key={i} className="border border-stone-800 rounded-xl overflow-hidden">
@@ -39,7 +41,6 @@ export default function FaqPage() {
           </div>
         ))}
       </div>
-
       <div className="mt-10 p-6 text-center border border-gold-500/20 rounded-2xl bg-stone-900/30">
         <p className="text-stone-400 mb-3">Still have questions?</p>
         <a href="mailto:amiragoldinvestmentoffice@gmail.com" className="btn-gold inline-block px-6 py-2">Contact Us</a>
