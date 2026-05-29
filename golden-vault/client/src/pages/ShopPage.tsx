@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { ShoppingCart, Search } from "lucide-react";
 import { useAuth } from "@clerk/clerk-react";
 import { useQueryClient } from "@tanstack/react-query";
+import SEO from "../components/SEO";
 
 const CATEGORIES = ["all", "bar", "coin", "jewelry"] as const;
 
@@ -49,6 +50,8 @@ export default function ShopPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      <SEO title="Shop Premium Gold" description="Browse investment-grade gold bars, coins and bullion. Live spot prices. Secure shipping worldwide from Dubai." />
+
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-serif text-gold-400">Gold Store</h1>
