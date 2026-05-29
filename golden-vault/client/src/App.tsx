@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { setAuthToken } from "./lib/api";
 import Navbar from "./components/Navbar";
 import TrustPopup from "./components/TrustPopup";
-import WhatsAppButton from "./components/WhatsAppButton";
 import GoldTicker from "./components/GoldTicker";
 import ShopPage from "./pages/ShopPage";
 import ProductPage from "./pages/ProductPage";
@@ -22,6 +21,25 @@ import RefundPage from "./pages/RefundPage";
 import FaqPage from "./pages/FaqPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+
+const waLink = "https://wa.me/971500000000?text=Hello%20Amira%20Al%20Dahab";
+
+const waStyle: React.CSSProperties = {
+  position: "fixed",
+  bottom: "24px",
+  right: "24px",
+  zIndex: 50,
+  width: "56px",
+  height: "56px",
+  borderRadius: "50%",
+  backgroundColor: "#25D366",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+  textDecoration: "none",
+  fontSize: "26px",
+};
 
 export default function App() {
   const { getToken, isLoaded } = useAuth();
@@ -42,7 +60,11 @@ export default function App() {
       <Navbar />
       <GoldTicker />
       <TrustPopup />
-      <WhatsAppButton />
+
+      <a href={waLink} style={waStyle} aria-label="WhatsApp">
+        💬
+      </a>
+
       <Switch>
         <Route path="/" component={ShopPage} />
         <Route path="/products/:id" component={ProductPage} />
