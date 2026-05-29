@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { TrendingUp } from "lucide-react";
-import { useAuth, SignInButton } from "@clerk/clerk-react";
+import { useAuth } from "../lib/auth";
 import { Link } from "wouter";
 import SEO from "../components/SEO";
 
 export default function InvestPage() {
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
   const qc = useQueryClient();
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ export default function InvestPage() {
   const { data: wallet } = useQuery({
     queryKey: ["wallet"],
     queryFn: () => api.get("/investments/wallet").then((r) => r.data),
-    enabled: isSignedIn,
+    enabled: !!user,
   });
 
   const balance = wallet ? parseFloat(wallet.balanceUsd ?? "0") : 0;
@@ -50,15 +50,13 @@ export default function InvestPage() {
 
   const presets = [100, 500, 1000, 5000, 10000];
 
-  if (!isSignedIn) {
+  if (!user) {
     return (
       <div className="max-w-lg mx-auto px-4 py-24 text-center">
         <SEO title="Gold Investment Plans" description="Grow your wealth with gold. Explore fractional gold investment plans with Amira Al Dahab." />
         <TrendingUp size={40} className="mx-auto mb-4 text-gold-500 opacity-70" />
         <p className="text-stone-400 mb-4">Sign in to invest in gold</p>
-        <SignInButton mode="modal">
-          <button className="btn-gold">Sign In</button>
-        </SignInButton>
+        <Link href="/sign-in"><button className="btn-gold">Sign In</button></Link>
       </div>
     );
   }
@@ -83,7 +81,6 @@ export default function InvestPage() {
         </div>
       )}
 
-      {/* Wallet balance */}
       <div className={`card p-4 mb-6 flex items-center justify-between ${insufficientFunds ? "border-red-500/50" : ""}`}>
         <div>
           <div className="text-xs text-stone-500 uppercase tracking-wide">Your Wallet Balance</div>
@@ -101,15 +98,7 @@ export default function InvestPage() {
         <label className="block text-sm text-stone-400 mb-2">Investment Amount (USD)</label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">$</span>
-          <input
-            type="number"
-            min="10"
-            step="10"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-            className={`w-full pl-7 pr-4 py-3 bg-stone-800 border rounded-lg text-stone-100 text-lg focus:outline-none transition-colors ${insufficientFunds ? "border-red-500 focus:border-red-400" : "border-stone-700 focus:border-gold-500"}`}
-          />
+          <input type="number" min="10" step="10" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className={`w-full pl-7 pr-4 py-3 bg-stone-800 border rounded-lg text-stone-100 text-lg focus:outline-none transition-colors ${insufficientFunds ? "border-red-500 focus:border-red-400" : "border-stone-700 focus:border-gold-500"}`} />
         </div>
 
         <div className="flex flex-wrap gap-2 mt-3">
@@ -139,11 +128,7 @@ export default function InvestPage() {
           </div>
         )}
 
-        <button
-          onClick={handleInvest}
-          disabled={loading || amountNum < 10 || insufficientFunds}
-          className="w-full btn-gold py-3 mt-4 text-base disabled:opacity-60 disabled:cursor-not-allowed"
-        >
+        <button onClick={handleInvest} disabled={loading || amountNum < 10 || insufficientFunds} className="w-full btn-gold py-3 mt-4 text-base disabled:opacity-60 disabled:cursor-not-allowed">
           {loading ? "Processing..." : insufficientFunds ? "Insufficient Funds — Deposit to Continue" : `Invest $${amountNum > 0 ? amountNum.toLocaleString() : "—"}`}
         </button>
       </div>
