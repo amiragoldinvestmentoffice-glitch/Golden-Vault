@@ -1,29 +1,37 @@
 import { Router } from "express";
-import { db } from "../db";
-import { reviews } from "../db/schema";
-import { eq, and, avg, count, desc } from "drizzle-orm";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const router = Router();
 
 // GET /api/products/reviews/summary — ratings for all products (used on shop page)
 router.get("/reviews/summary", async (_req, res) => {
   try {
-    const rows = await db
-      .select({
-        productId: reviews.productId,
-        avgRating: avg(reviews.rating),
-        total: count(reviews.id),
-      })
-      .from(reviews)
-      .groupBy(reviews.productId);
+    const { data, error } = await supabase
+      .from("reviews")
+      .select("product_id, rating");
+
+    if (error) {
+      res.status(500).json({ error: error.message });
+      return;
+    }
 
     const summary: Record<number, { avgRating: number; count: number }> = {};
-    for (const row of rows) {
-      summary[row.productId] = {
-        avgRating: parseFloat(row.avgRating ?? "0"),
-        count: Number(row.total),
-      };
+    for (const row of data) {
+      if (!summary[row.product_id]) {
+        summary[row.product_id] = { avgRating: 0, count: 0 };
+      }
+      summary[row.product_id].count++;
+      summary[row.product_id].avgRating += row.rating;
     }
+    for (const id in summary) {
+      summary[id].avgRating = summary[id].avgRating / summary[id].count;
+    }
+
     res.json(summary);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch summary" });
@@ -34,21 +42,26 @@ router.get("/reviews/summary", async (_req, res) => {
 router.get("/:productId/reviews", async (req, res) => {
   try {
     const productId = parseInt(req.params.productId);
-    const productReviews = await db
-      .select()
-      .from(reviews)
-      .where(eq(reviews.productId, productId))
-      .orderBy(desc(reviews.createdAt));
 
-    const stats = await db
-      .select({ avgRating: avg(reviews.rating), total: count(reviews.id) })
-      .from(reviews)
-      .where(eq(reviews.productId, productId));
+    const { data, error } = await supabase
+      .from("reviews")
+      .select("*")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      res.status(500).json({ error: error.message });
+      return;
+    }
+
+    const avgRating = data.length > 0
+      ? data.reduce((sum, r) => sum + r.rating, 0) / data.length
+      : 0;
 
     res.json({
-      reviews: productReviews,
-      avgRating: parseFloat(stats[0]?.avgRating ?? "0"),
-      count: Number(stats[0]?.total ?? 0),
+      reviews: data,
+      avgRating,
+      count: data.length,
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch reviews" });
@@ -58,11 +71,12 @@ router.get("/:productId/reviews", async (req, res) => {
 // POST /api/products/:productId/reviews
 router.post("/:productId/reviews", async (req, res) => {
   try {
-    const userId = (req as any).auth?.userId;
-    if (!userId) {
+    const user = (req as any).user;
+    if (!user) {
       res.status(401).json({ error: "Sign in to leave a review" });
       return;
     }
+
     const productId = parseInt(req.params.productId);
     const { rating, comment, userName, userEmail } = req.body;
 
@@ -71,29 +85,37 @@ router.post("/:productId/reviews", async (req, res) => {
       return;
     }
 
-    const existing = await db
-      .select()
-      .from(reviews)
-      .where(and(eq(reviews.productId, productId), eq(reviews.userId, userId)));
+    const { data: existing } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("product_id", productId)
+      .eq("user_id", user.id)
+      .single();
 
-    if (existing.length > 0) {
+    if (existing) {
       res.status(409).json({ error: "You have already reviewed this product" });
       return;
     }
 
-    const [review] = await db
-      .insert(reviews)
-      .values({
-        productId,
-        userId,
-        userName: userName || "Anonymous",
-        userEmail: userEmail || "",
+    const { data, error } = await supabase
+      .from("reviews")
+      .insert({
+        product_id: productId,
+        user_id: user.id,
+        user_name: userName || user.user_metadata?.full_name || "Anonymous",
+        user_email: userEmail || user.email || "",
         rating: parseInt(rating),
         comment: comment || null,
       })
-      .returning();
+      .select()
+      .single();
 
-    res.status(201).json(review);
+    if (error) {
+      res.status(500).json({ error: error.message });
+      return;
+    }
+
+    res.status(201).json(data);
   } catch (err) {
     res.status(500).json({ error: "Failed to submit review" });
   }
