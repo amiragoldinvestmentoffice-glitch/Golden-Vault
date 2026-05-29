@@ -11,12 +11,12 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireAdmin);
 
-router.get("/api/admin/orders", async (_req, res) => {
+router.get("/orders", async (_req, res) => {
   const rows = await db.select().from(orders).orderBy(orders.createdAt);
   res.json(rows.reverse());
 });
 
-router.get("/api/admin/users", async (_req, res) => {
+router.get("/users", async (_req, res) => {
   const response = await clerkClient.users.getUserList({ limit: 100 });
   const users = response.data.map((u) => ({
     id: u.id,
@@ -31,7 +31,7 @@ const statusSchema = z.object({
   status: z.enum(["confirmed", "pending", "processing", "shipped", "delivered"]),
 });
 
-router.patch("/api/admin/orders/:id", async (req, res) => {
+router.patch("/orders/:id", async (req, res) => {
   const orderId = parseInt(req.params.id);
   const { status } = statusSchema.parse(req.body);
   const [updated] = await db
