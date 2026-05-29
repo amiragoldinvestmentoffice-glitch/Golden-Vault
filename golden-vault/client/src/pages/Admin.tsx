@@ -1,24 +1,24 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../lib/auth";
+import { api } from "../lib/api";
 
 type Order = {
   id: number;
-  userId: string;
-  totalUsd: string;
+  user_id: string;
+  user_email: string;
+  user_name: string;
+  total_usd: string;
   status: string;
-  shippingName: string;
-  shippingCity: string;
-  shippingCountry: string;
-  paymentMethod: string;
-  createdAt: string;
+  shipping_address: any;
+  created_at: string;
 };
 
-type ClerkUser = {
+type SupabaseUser = {
   id: string;
   email: string;
   name: string;
-  createdAt: number;
+  createdAt: string;
 };
 
 const ALL_STATUSES = ["confirmed", "pending", "processing", "shipped", "delivered"] as const;
@@ -33,47 +33,30 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function Admin() {
   const [tab, setTab] = useState<"orders" | "users">("orders");
-  const { getToken } = useAuth();
+  const { user } = useAuth();
   const qc = useQueryClient();
-
-  const authFetch = async (url: string, options?: RequestInit) => {
-    const token = await getToken();
-    const res = await fetch(url, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        ...(options?.headers ?? {}),
-      },
-    });
-    if (res.status === 403) throw new Error("FORBIDDEN");
-    if (!res.ok) throw new Error("Failed");
-    return res.json();
-  };
 
   const ordersQuery = useQuery<Order[]>({
     queryKey: ["admin-orders"],
-    queryFn: () => authFetch("/api/admin/orders"),
+    queryFn: () => api.get("/admin/orders").then(r => r.data),
     retry: false,
+    enabled: !!user,
   });
 
-  const usersQuery = useQuery<ClerkUser[]>({
+  const usersQuery = useQuery<SupabaseUser[]>({
     queryKey: ["admin-users"],
-    queryFn: () => authFetch("/api/admin/users"),
+    queryFn: () => api.get("/admin/users").then(r => r.data),
     retry: false,
-    enabled: tab === "users",
+    enabled: tab === "users" && !!user,
   });
 
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
-      authFetch(`/api/admin/orders/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      }),
+      api.patch(`/admin/orders/${id}`, { status }).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-orders"] }),
   });
 
-  if (ordersQuery.error?.message === "FORBIDDEN") {
+  if (ordersQuery.error) {
     return (
       <div className="min-h-screen bg-stone-950 flex items-center justify-center">
         <div className="text-center">
@@ -87,7 +70,7 @@ export default function Admin() {
 
   const orders = ordersQuery.data ?? [];
   const users = usersQuery.data ?? [];
-  const totalRevenue = orders.reduce((sum, o) => sum + Number(o.totalUsd), 0);
+  const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total_usd), 0);
 
   return (
     <div className="min-h-screen bg-stone-950 text-stone-100">
@@ -150,11 +133,11 @@ export default function Admin() {
                     {orders.map((order) => (
                       <tr key={order.id} className="hover:bg-stone-900/30 transition-colors">
                         <td className="px-4 py-3 font-mono text-yellow-500 font-bold">#{order.id}</td>
-                        <td className="px-4 py-3 text-stone-200">{order.shippingName}</td>
-                        <td className="px-4 py-3 text-stone-400">{order.shippingCity}, {order.shippingCountry}</td>
-                        <td className="px-4 py-3 text-stone-400 capitalize">{order.paymentMethod}</td>
-                        <td className="px-4 py-3 text-right font-bold text-yellow-500">${Number(order.totalUsd).toFixed(2)}</td>
-                        <td className="px-4 py-3 text-stone-500 text-xs whitespace-nowrap">{new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
+                        <td className="px-4 py-3 text-stone-200">{order.user_name || order.shipping_address?.name || "—"}</td>
+                        <td className="px-4 py-3 text-stone-400">{order.shipping_address?.city}, {order.shipping_address?.country}</td>
+                        <td className="px-4 py-3 text-stone-400 capitalize">{order.shipping_address?.paymentMethod || "—"}</td>
+                        <td className="px-4 py-3 text-right font-bold text-yellow-500">${Number(order.total_usd).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-stone-500 text-xs whitespace-nowrap">{new Date(order.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
                         <td className="px-4 py-3">
                           <select value={order.status} onChange={(e) => updateStatus.mutate({ id: order.id, status: e.target.value })} className={`text-xs rounded-lg px-2.5 py-1.5 border border-stone-700 bg-stone-800 focus:outline-none focus:border-yellow-500 cursor-pointer ${STATUS_COLORS[order.status] ?? "text-stone-300"}`}>
                             {ALL_STATUSES.map((s) => (
@@ -187,12 +170,12 @@ export default function Admin() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-800/50">
-                    {users.map((user) => (
-                      <tr key={user.id} className="hover:bg-stone-900/30 transition-colors">
-                        <td className="px-4 py-3 text-stone-200">{user.name}</td>
-                        <td className="px-4 py-3 text-stone-300">{user.email}</td>
-                        <td className="px-4 py-3 font-mono text-stone-600 text-xs">{user.id.slice(0, 20)}…</td>
-                        <td className="px-4 py-3 text-stone-500 text-xs">{new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
+                    {users.map((u) => (
+                      <tr key={u.id} className="hover:bg-stone-900/30 transition-colors">
+                        <td className="px-4 py-3 text-stone-200">{u.name}</td>
+                        <td className="px-4 py-3 text-stone-300">{u.email}</td>
+                        <td className="px-4 py-3 font-mono text-stone-600 text-xs">{u.id.slice(0, 20)}…</td>
+                        <td className="px-4 py-3 text-stone-500 text-xs">{new Date(u.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
                       </tr>
                     ))}
                   </tbody>
