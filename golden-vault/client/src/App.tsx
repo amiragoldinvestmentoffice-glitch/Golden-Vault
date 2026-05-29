@@ -21,9 +21,9 @@ import RefundPage from "./pages/RefundPage";
 import FaqPage from "./pages/FaqPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import AdminPage from "./pages/Admin";
 
 const waLink = "https://wa.me/971500000000?text=Hello%20Amira%20Al%20Dahab";
-
 const waStyle: React.CSSProperties = {
   position: "fixed",
   bottom: "24px",
@@ -60,11 +60,9 @@ export default function App() {
       <Navbar />
       <GoldTicker />
       <TrustPopup />
-
       <a href={waLink} style={waStyle} aria-label="WhatsApp">
         💬
       </a>
-
       <Switch>
         <Route path="/" component={ShopPage} />
         <Route path="/products/:id" component={ProductPage} />
@@ -81,6 +79,7 @@ export default function App() {
         <Route path="/faq" component={FaqPage} />
         <Route path="/about" component={AboutPage} />
         <Route path="/contact" component={ContactPage} />
+        <Route path="/admin" component={AdminPage} />
         <Route path="/sign-in" component={SignInPage} />
         <Route>
           <div className="flex items-center justify-center h-96 text-stone-400">
@@ -88,7 +87,6 @@ export default function App() {
           </div>
         </Route>
       </Switch>
-
       <footer className="border-t border-stone-800 mt-16 py-8 text-center text-stone-500 text-sm">
         <p className="mb-2">© 2026 Amira Al Dahab. All rights reserved.</p>
         <div className="flex justify-center gap-4 flex-wrap">
