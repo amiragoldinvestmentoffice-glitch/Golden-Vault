@@ -1,6 +1,10 @@
+import SEO from "../components/SEO";
+
 export default function TermsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
+      <SEO title="Terms & Conditions" description="Read the terms and conditions for using Amira Al Dahab gold investment services." />
+
       <h1 className="text-3xl font-serif text-gold-400 mb-2">Terms & Conditions</h1>
       <p className="text-stone-500 text-sm mb-8">Last updated: May 2026</p>
 
