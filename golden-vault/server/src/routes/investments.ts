@@ -14,25 +14,21 @@ investmentsRouter.use(requireAuth);
 
 investmentsRouter.get("/", async (req, res) => {
   const userId = getUserId(req);
-
   const { data: rows, error } = await supabase
     .from("investments")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: true });
-
   if (error) {
     res.status(500).json({ error: error.message });
     return;
   }
-
   const spotPrice = getSpotPricePerGram();
   const totalGrams = rows.reduce((s, r) => s + parseFloat(r.grams_acquired), 0);
   const totalInvested = rows.reduce((s, r) => s + parseFloat(r.amount_usd), 0);
   const currentValue = totalGrams * spotPrice;
   const gainLoss = currentValue - totalInvested;
   const gainLossPct = totalInvested > 0 ? (gainLoss / totalInvested) * 100 : 0;
-
   res.json({
     investments: rows,
     summary: {
@@ -64,4 +60,17 @@ investmentsRouter.post("/", async (req, res) => {
     .from("investments")
     .insert({
       user_id: userId,
-      amount_usd: amou
+      amount_usd: amountUsd.toFixed(2),
+      grams_acquired: gramsAcquired.toFixed(6),
+      spot_price_at_purchase: spotPrice.toFixed(4),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  res.status(201).json(data);
+});
