@@ -8,13 +8,12 @@ import { cartRouter } from "./routes/cart";
 import { ordersRouter } from "./routes/orders";
 import { investmentsRouter } from "./routes/investments";
 import { priceRouter } from "./routes/price";
+import adminRouter from "./routes/admin";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Allow all origins in production since frontend is served from same domain
 app.use(cors({ origin: true, credentials: true }));
-
 app.use(express.json());
 app.use(clerkAuth);
 
@@ -27,6 +26,7 @@ app.use("/api/cart", cartRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/investments", investmentsRouter);
 app.use("/api/price", priceRouter);
+app.use(adminRouter);
 
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.resolve(process.cwd(), "..", "client", "dist");
