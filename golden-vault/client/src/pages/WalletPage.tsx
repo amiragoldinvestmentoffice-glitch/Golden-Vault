@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
-import { useAuth, SignInButton } from "@clerk/clerk-react";
+import { useAuth } from "../lib/auth";
+import { Link } from "wouter";
 
 export default function WalletPage() {
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
   const [copied, setCopied] = useState<string | null>(null);
 
   const wallets = [
@@ -19,13 +20,11 @@ export default function WalletPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  if (!isSignedIn) {
+  if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
         <p className="text-stone-400 mb-4">Sign in to buy store credit</p>
-        <SignInButton mode="modal">
-          <button className="btn-gold">Sign In</button>
-        </SignInButton>
+        <Link href="/sign-in"><button className="btn-gold">Sign In</button></Link>
       </div>
     );
   }
@@ -45,25 +44,12 @@ export default function WalletPage() {
                 <p className="text-stone-500 text-sm">{wallet.symbol}</p>
               </div>
             </div>
-
             <div className="bg-stone-800/50 rounded-lg p-3 mb-3">
               <p className="text-xs text-stone-500 mb-1">Send to this address:</p>
               <p className="text-stone-200 text-xs font-mono break-all">{wallet.address}</p>
             </div>
-
-            <button
-              onClick={() => copyAddress(wallet.address, wallet.symbol)}
-              className="w-full flex items-center justify-center gap-2 btn-gold py-2 text-sm"
-            >
-              {copied === wallet.symbol ? (
-                <>
-                  <Check size={16} /> Copied!
-                </>
-              ) : (
-                <>
-                  <Copy size={16} /> Copy Address
-                </>
-              )}
+            <button onClick={() => copyAddress(wallet.address, wallet.symbol)} className="w-full flex items-center justify-center gap-2 btn-gold py-2 text-sm">
+              {copied === wallet.symbol ? (<><Check size={16} /> Copied!</>) : (<><Copy size={16} /> Copy Address</>)}
             </button>
           </div>
         ))}
