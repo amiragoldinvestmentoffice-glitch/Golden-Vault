@@ -9,6 +9,7 @@ import { ordersRouter } from "./routes/orders";
 import { investmentsRouter } from "./routes/investments";
 import { priceRouter } from "./routes/price";
 import adminRouter from "./routes/admin";
+import { reviewsRouter } from "./routes/reviews";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -22,6 +23,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/products", productsRouter);
+app.use("/api/products", reviewsRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/investments", investmentsRouter);
