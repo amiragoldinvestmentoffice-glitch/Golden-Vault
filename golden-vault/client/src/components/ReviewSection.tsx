@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAuth, useUser, SignInButton } from "@clerk/clerk-react";
+import { useAuth } from "../lib/auth";
 import { Star } from "lucide-react";
 import { api } from "../lib/api";
+import { Link } from "wouter";
 
 interface Review {
   id: number;
-  userId: string;
-  userName: string;
+  user_id: string;
+  user_name: string;
   rating: number;
   comment: string | null;
-  createdAt: string;
+  created_at: string;
 }
 
 interface ReviewsData {
@@ -32,8 +33,7 @@ function StarRow({ value, size = 16 }: { value: number; size?: number }) {
 const LABELS = ["", "Poor", "Fair", "Good", "Very Good", "Excellent"];
 
 export default function ReviewSection({ productId }: { productId: number }) {
-  const { isSignedIn } = useAuth();
-  const { user } = useUser();
+  const { user } = useAuth();
   const qc = useQueryClient();
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
@@ -45,7 +45,7 @@ export default function ReviewSection({ productId }: { productId: number }) {
     queryFn: () => api.get(`/products/${productId}/reviews`).then((r) => r.data),
   });
 
-  const alreadyReviewed = isSignedIn && !!data?.reviews.some((r) => r.userId === user?.id);
+  const alreadyReviewed = !!user && !!data?.reviews.some((r) => r.user_id === user.id);
 
   const handleSubmit = async () => {
     if (rating === 0) { alert("Please select a star rating"); return; }
@@ -54,8 +54,8 @@ export default function ReviewSection({ productId }: { productId: number }) {
       await api.post(`/products/${productId}/reviews`, {
         rating,
         comment: comment.trim(),
-        userName: user?.fullName || user?.emailAddresses?.[0]?.emailAddress || "Anonymous",
-        userEmail: user?.emailAddresses?.[0]?.emailAddress || "",
+        userName: user?.user_metadata?.full_name || user?.email || "Anonymous",
+        userEmail: user?.email || "",
       });
       qc.invalidateQueries({ queryKey: ["reviews", productId] });
       qc.invalidateQueries({ queryKey: ["reviews-summary"] });
@@ -80,44 +80,28 @@ export default function ReviewSection({ productId }: { productId: number }) {
         )}
       </div>
 
-      {isSignedIn && !alreadyReviewed && (
+      {user && !alreadyReviewed && (
         <div className="card p-5 mb-6">
           <p className="text-stone-300 text-sm font-medium mb-3">Write a Review</p>
           <div className="flex items-center gap-2 mb-4">
             {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                onClick={() => setRating(star)}
-                onMouseEnter={() => setHovered(star)}
-                onMouseLeave={() => setHovered(0)}
-                className="focus:outline-none"
-              >
+              <button key={star} onClick={() => setRating(star)} onMouseEnter={() => setHovered(star)} onMouseLeave={() => setHovered(0)} className="focus:outline-none">
                 <Star size={28} className={(hovered || rating) >= star ? "text-gold-400 fill-gold-400" : "text-stone-600"} />
               </button>
             ))}
             {rating > 0 && <span className="text-stone-400 text-sm ml-1">{LABELS[rating]}</span>}
           </div>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Share your experience (optional)"
-            className="w-full bg-stone-800 border border-stone-700 rounded-lg px-3 py-2.5 text-stone-200 text-sm focus:outline-none focus:border-gold-500 resize-none placeholder-stone-500"
-            rows={3}
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || rating === 0}
-            className="btn-gold mt-3 text-sm py-2 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Share your experience (optional)" className="w-full bg-stone-800 border border-stone-700 rounded-lg px-3 py-2.5 text-stone-200 text-sm focus:outline-none focus:border-gold-500 resize-none placeholder-stone-500" rows={3} />
+          <button onClick={handleSubmit} disabled={submitting || rating === 0} className="btn-gold mt-3 text-sm py-2 px-6 disabled:opacity-50 disabled:cursor-not-allowed">
             {submitting ? "Submitting..." : "Submit Review"}
           </button>
         </div>
       )}
 
-      {!isSignedIn && (
+      {!user && (
         <div className="card p-4 mb-6 flex items-center gap-3 text-sm text-stone-400">
           <span>Sign in to leave a review</span>
-          <SignInButton mode="modal"><button className="text-gold-400 hover:underline">Sign In</button></SignInButton>
+          <Link href="/sign-in"><button className="text-gold-400 hover:underline">Sign In</button></Link>
         </div>
       )}
 
@@ -135,8 +119,8 @@ export default function ReviewSection({ productId }: { productId: number }) {
         {data?.reviews.map((review) => (
           <div key={review.id} className="card p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-stone-200 text-sm font-medium">{review.userName}</span>
-              <span className="text-xs text-stone-500">{new Date(review.createdAt).toLocaleDateString()}</span>
+              <span className="text-stone-200 text-sm font-medium">{review.user_name}</span>
+              <span className="text-xs text-stone-500">{new Date(review.created_at).toLocaleDateString()}</span>
             </div>
             <StarRow value={review.rating} />
             {review.comment && <p className="text-stone-400 text-sm mt-2 leading-relaxed">{review.comment}</p>}
