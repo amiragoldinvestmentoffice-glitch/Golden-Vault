@@ -1,36 +1,47 @@
 import { Router } from "express";
-import { db } from "../db";
-import { products } from "../db/schema";
-import { eq, like, and, SQL } from "drizzle-orm";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export const productsRouter = Router();
 
 productsRouter.get("/", async (req, res) => {
   const { category, search } = req.query;
 
-  const conditions: SQL[] = [];
+  let query = supabase.from("products").select("*");
+
   if (category && category !== "all") {
-    conditions.push(eq(products.category, category as string));
+    query = query.eq("category", category as string);
   }
+
   if (search) {
-    conditions.push(like(products.name, `%${search}%`));
+    query = query.ilike("name", `%${search}%`);
   }
 
-  const rows = conditions.length > 0
-    ? await db.select().from(products).where(and(...conditions))
-    : await db.select().from(products);
+  const { data, error } = await query;
 
-  res.json(rows);
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  res.json(data);
 });
 
 productsRouter.get("/:id", async (req, res) => {
-  const [product] = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, parseInt(req.params.id)));
-  if (!product) {
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", parseInt(req.params.id))
+    .single();
+
+  if (error || !data) {
     res.status(404).json({ error: "Product not found" });
     return;
   }
-  res.json(product);
+
+  res.json(data);
 });
