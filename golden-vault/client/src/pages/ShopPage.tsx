@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { Link } from "wouter";
 import { ShoppingCart, Search, Star } from "lucide-react";
-import { useAuth } from "@clerk/clerk-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../lib/auth";
 import SEO from "../components/SEO";
 
 const CATEGORIES = ["all", "bar", "coin", "jewelry"] as const;
@@ -13,12 +12,12 @@ interface Product {
   id: number;
   name: string;
   description: string;
-  priceUsd: string;
-  weightGrams: string;
+  price_usd: string;
+  weight_grams: string;
   purity: string;
   category: string;
-  imageUrl: string;
-  inStock: boolean;
+  image_url: string;
+  in_stock: boolean;
 }
 
 interface ReviewSummary {
@@ -29,13 +28,12 @@ interface ReviewSummary {
 export default function ShopPage() {
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const { isSignedIn } = useAuth();
+  const { user } = useAuth();
   const qc = useQueryClient();
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["products", category, search],
-    queryFn: () =>
-      api.get("/products", { params: { category, search } }).then((r) => r.data),
+    queryFn: () => api.get("/products", { params: { category, search } }).then((r) => r.data),
   });
 
   const { data: price } = useQuery({
@@ -50,7 +48,7 @@ export default function ShopPage() {
   });
 
   const addToCart = async (productId: number) => {
-    if (!isSignedIn) {
+    if (!user) {
       alert("Please sign in to add items to cart");
       return;
     }
@@ -79,21 +77,11 @@ export default function ShopPage() {
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
-          <input
-            type="text"
-            placeholder="Search products..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-stone-900 border border-stone-800 rounded-lg text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-gold-500"
-          />
+          <input type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-stone-900 border border-stone-800 rounded-lg text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-gold-500" />
         </div>
         <div className="flex gap-2">
           {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${category === cat ? "bg-gold-500 text-stone-900" : "bg-stone-900 border border-stone-800 text-stone-400 hover:border-gold-500"}`}
-            >
+            <button key={cat} onClick={() => setCategory(cat)} className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${category === cat ? "bg-gold-500 text-stone-900" : "bg-stone-900 border border-stone-800 text-stone-400 hover:border-gold-500"}`}>
               {cat}
             </button>
           ))}
@@ -102,9 +90,7 @@ export default function ShopPage() {
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="card h-80 animate-pulse" />
-          ))}
+          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="card h-80 animate-pulse" />)}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -112,23 +98,19 @@ export default function ShopPage() {
             <div key={product.id} className="card overflow-hidden group hover:border-gold-500/50 transition-colors">
               <Link href={`/products/${product.id}`}>
                 <div className="h-48 bg-stone-800 overflow-hidden cursor-pointer">
-                  {product.imageUrl ? (
-                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl">🥇</div>
                   )}
                 </div>
               </Link>
               <div className="p-4">
-                <span className="text-xs text-gold-600 uppercase tracking-wide font-medium">
-                  {product.category} · {product.purity}
-                </span>
+                <span className="text-xs text-gold-600 uppercase tracking-wide font-medium">{product.category} · {product.purity}</span>
                 <Link href={`/products/${product.id}`}>
-                  <h3 className="font-medium text-stone-100 mt-1 hover:text-gold-400 cursor-pointer line-clamp-2">
-                    {product.name}
-                  </h3>
+                  <h3 className="font-medium text-stone-100 mt-1 hover:text-gold-400 cursor-pointer line-clamp-2">{product.name}</h3>
                 </Link>
-                <p className="text-stone-500 text-xs mt-1">{parseFloat(product.weightGrams).toFixed(1)}g</p>
+                <p className="text-stone-500 text-xs mt-1">{parseFloat(product.weight_grams).toFixed(1)}g</p>
                 {reviewsSummary[product.id]?.count > 0 && (
                   <div className="flex items-center gap-1 mt-1.5">
                     <div className="flex gap-0.5">
@@ -140,14 +122,9 @@ export default function ShopPage() {
                   </div>
                 )}
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-gold-400 font-semibold">${parseFloat(product.priceUsd).toLocaleString()}</span>
-                  <button
-                    onClick={() => addToCart(product.id)}
-                    disabled={!product.inStock}
-                    className="flex items-center gap-1.5 btn-gold text-xs py-1.5 px-3 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <ShoppingCart size={13} />
-                    Add
+                  <span className="text-gold-400 font-semibold">${parseFloat(product.price_usd).toLocaleString()}</span>
+                  <button onClick={() => addToCart(product.id)} disabled={!product.in_stock} className="flex items-center gap-1.5 btn-gold text-xs py-1.5 px-3 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <ShoppingCart size={13} />Add
                   </button>
                 </div>
               </div>
@@ -165,9 +142,7 @@ export default function ShopPage() {
         <div className="max-w-sm w-full rounded-2xl overflow-hidden border border-gold-500/30 shadow-xl">
           <img src="https://i.imgur.com/KFi4n7z.jpeg" alt="Gold Ownership Certificate - Amira Aldahab" className="w-full" />
         </div>
-        <p className="text-stone-400 text-sm text-center mt-3">
-          Amira Aldahab — Certified 1kg Fine Gold Owner · Serial AA01357
-        </p>
+        <p className="text-stone-400 text-sm text-center mt-3">Amira Aldahab — Certified 1kg Fine Gold Owner · Serial AA01357</p>
       </div>
     </div>
   );
