@@ -4,10 +4,9 @@
 
 @layer base {
   body {
-    @apply bg-stone-950 text-stone-100;
+    @apply bg-ivory-100 text-stone-900;
     font-family: system-ui, -apple-system, sans-serif;
   }
-
   h1, h2, h3 {
     @apply font-serif;
   }
@@ -15,14 +14,55 @@
 
 @layer components {
   .btn-gold {
-    @apply bg-gold-500 hover:bg-gold-400 text-stone-900 font-semibold px-4 py-2 rounded-lg transition-colors;
+    @apply bg-gold-500 hover:bg-gold-400 text-stone-900 font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm;
   }
-
   .btn-outline {
-    @apply border border-gold-500 text-gold-400 hover:bg-gold-500/10 px-4 py-2 rounded-lg transition-colors;
+    @apply border border-gold-500 text-gold-600 hover:bg-gold-500/10 px-4 py-2 rounded-lg transition-colors;
   }
-
   .card {
-    @apply bg-stone-900 border border-stone-800 rounded-xl;
+    @apply bg-white border border-stone-200 rounded-xl shadow-sm;
   }
+}
+
+/* ── Global light theme overrides ── */
+.bg-stone-950 { background-color: #FBF8F0 !important; }
+.bg-stone-900 { background-color: #FFFFFF !important; }
+.bg-stone-900\/60 { background-color: rgba(255,255,255,0.6) !important; }
+.bg-stone-900\/50 { background-color: rgba(255,255,255,0.5) !important; }
+.bg-stone-900\/40 { background-color: rgba(255,255,255,0.4) !important; }
+.bg-stone-900\/30 { background-color: rgba(255,255,255,0.3) !important; }
+.bg-stone-800 { background-color: #F0EBE1 !important; }
+.bg-stone-800\/50 { background-color: rgba(240,235,225,0.5) !important; }
+.border-stone-800 { border-color: #E5DDD0 !important; }
+.border-stone-700 { border-color: #D6CEC4 !important; }
+.text-stone-100 { color: #1C1917 !important; }
+.text-stone-300 { color: #44403C !important; }
+.text-stone-400 { color: #78716C !important; }
+.text-stone-500 { color: #A8A29E !important; }
+.text-stone-600 { color: #57534E !important; }
+.placeholder\:text-stone-600::placeholder { color: #A8A29E !important; }
+.placeholder\:text-stone-500::placeholder { color: #A8A29E !important; }
+
+/* inputs on light bg */
+input, textarea, select {
+  background-color: #F5F0E8 !important;
+  color: #1C1917 !important;
+  border-color: #D6CEC4 !important;
+}
+input::placeholder, textarea::placeholder {
+  color: #A8A29E !important;
+}
+
+/* ── Jewel tone section accents ── */
+.jewel-purple {
+  background: linear-gradient(135deg, #4C1D95, #7C3AED);
+}
+.jewel-emerald {
+  background: linear-gradient(135deg, #064E3B, #047857);
+}
+.jewel-ruby {
+  background: linear-gradient(135deg, #881337, #E11D48);
+}
+.jewel-gold {
+  background: linear-gradient(135deg, #713f12, #eab308);
 }
