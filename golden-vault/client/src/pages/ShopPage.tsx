@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { Link } from "wouter";
@@ -121,43 +121,107 @@ const VIDEOS = [
   },
 ];
 
-function VideoCard({ src, label }: { src: string; label: string }) {
+function VideoCard({
+  src,
+  label,
+  isActive,
+  onActivate,
+  onEnded,
+}: {
+  src: string;
+  label: string;
+  isActive: boolean;
+  onActivate: () => void;
+  onEnded: () => void;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(true);
   const [muted, setMuted] = useState(true);
 
-  const toggle = () => {
+  useEffect(() => {
     if (!ref.current) return;
-    if (playing) { ref.current.pause(); } else { ref.current.play(); }
-    setPlaying(!playing);
+    if (isActive) {
+      ref.current.play().catch(() => {});
+    } else {
+      ref.current.pause();
+      ref.current.currentTime = 0;
+    }
+  }, [isActive]);
+
+  const goFullscreen = () => {
+    const v = ref.current;
+    if (!v) return;
+    if (v.requestFullscreen) v.requestFullscreen();
+    else if ((v as any).webkitRequestFullscreen) (v as any).webkitRequestFullscreen();
+    else if ((v as any).mozRequestFullScreen) (v as any).mozRequestFullScreen();
   };
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-gold-500/20 bg-stone-950">
+    <div
+      onClick={onActivate}
+      className={`relative rounded-xl overflow-hidden border cursor-pointer transition-all duration-300 ${
+        isActive
+          ? "border-gold-500 shadow-xl shadow-gold-500/30 scale-[1.03] z-10"
+          : "border-stone-700 hover:border-gold-500/50 opacity-70 hover:opacity-100"
+      }`}
+    >
       <video
         ref={ref}
         src={src}
-        autoPlay
-        loop
+        loop={false}
         muted={muted}
         playsInline
-        className="w-full aspect-video object-contain bg-stone-950"
+        onEnded={onEnded}
+        className="w-full aspect-video object-cover bg-stone-950"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-stone-950/70 to-transparent pointer-events-none" />
-      <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
-        <p className="text-gold-400 text-sm font-medium drop-shadow">{label}</p>
-        <div className="flex gap-2">
-          <button onClick={toggle} className="bg-stone-900/80 border border-stone-700 hover:border-gold-500 text-stone-300 hover:text-gold-400 text-xs px-3 py-1.5 rounded-lg transition-colors backdrop-blur-sm">
-            {playing ? "⏸ Pause" : "▶ Play"}
+      {isActive && (
+        <div className="absolute top-2 left-2">
+          <span className="bg-gold-500 text-stone-900 text-xs font-bold px-2 py-0.5 rounded-full tracking-wide">
+            ▶ PLAYING
+          </span>
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 to-transparent pointer-events-none" />
+      <div className="absolute bottom-2 left-2 right-2 flex items-end justify-between">
+        <p className="text-gold-400 text-xs font-semibold drop-shadow truncate mr-2">{label}</p>
+        <div className="flex gap-1 shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); setMuted(!muted); }}
+            className="bg-stone-900/80 border border-stone-700 hover:border-gold-500 text-stone-300 hover:text-gold-400 text-xs px-2 py-1 rounded-lg transition-colors backdrop-blur-sm"
+          >
+            {muted ? "🔇" : "🔊"}
           </button>
-          <button onClick={() => setMuted(!muted)} className="bg-stone-900/80 border border-stone-700 hover:border-gold-500 text-stone-300 hover:text-gold-400 text-xs px-3 py-1.5 rounded-lg transition-colors backdrop-blur-sm">
-            {muted ? "🔇 Unmute" : "🔊 Mute"}
+          <button
+            onClick={(e) => { e.stopPropagation(); goFullscreen(); }}
+            className="bg-stone-900/80 border border-stone-700 hover:border-gold-500 text-stone-300 hover:text-gold-400 text-xs px-2 py-1 rounded-lg transition-colors backdrop-blur-sm"
+            title="Fullscreen"
+          >
+            ⛶
           </button>
         </div>
       </div>
     </div>
   );
 }
+
+function VideoSection() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const handleEnded = () => setActiveIndex((prev) => (prev + 1) % VIDEOS.length);
+  return (
+    <div className="mb-10 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      {VIDEOS.map((v, i) => (
+        <VideoCard
+          key={v.src}
+          src={v.src}
+          label={v.label}
+          isActive={i === activeIndex}
+          onActivate={() => setActiveIndex(i)}
+          onEnded={handleEnded}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function ShopPage() {
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -255,32 +319,44 @@ export default function ShopPage() {
         ))}
       </div>
 
-         {/* ── Brand Video Section ── */}
-      <div className="mb-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          
-  {VIDEOS.map((v) => (
-    <VideoCard key={v.src} src={v.src} label={v.label} />
-  ))}
-</div>
+      {/* ── Brand Video Section ── */}
+      <VideoSection />
 
       {/* ── Search & Filter ── */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
-          <input type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-stone-900 border border-stone-800 rounded-lg text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-gold-500" />
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-stone-900 border border-stone-800 rounded-lg text-sm text-stone-100 placeholder-stone-500 focus:outline-none focus:border-gold-500"
+          />
         </div>
         <div className="flex gap-2">
           {CATEGORIES.map((cat) => (
-            <button key={cat} onClick={() => setCategory(cat)} className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${category === cat ? "bg-gold-500 text-stone-900" : "bg-stone-900 border border-stone-800 text-stone-400 hover:border-gold-500"}`}>
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize transition-colors ${
+                category === cat
+                  ? "bg-gold-500 text-stone-900"
+                  : "bg-stone-900 border border-stone-800 text-stone-400 hover:border-gold-500"
+              }`}
+            >
               {cat}
             </button>
           ))}
         </div>
       </div>
 
+      {/* ── Product Grid ── */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="card h-80 animate-pulse" />)}
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="card h-80 animate-pulse" />
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -289,31 +365,53 @@ export default function ShopPage() {
               <Link href={`/products/${product.id}`}>
                 <div className="h-48 bg-stone-800 overflow-hidden cursor-pointer">
                   {product.image_url ? (
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl">🥇</div>
                   )}
                 </div>
               </Link>
               <div className="p-4">
-                <span className="text-xs text-gold-600 uppercase tracking-wide font-medium">{product.category} · {product.purity}</span>
+                <span className="text-xs text-gold-600 uppercase tracking-wide font-medium">
+                  {product.category} · {product.purity}
+                </span>
                 <Link href={`/products/${product.id}`}>
-                  <h3 className="font-medium text-stone-100 mt-1 hover:text-gold-400 cursor-pointer line-clamp-2">{product.name}</h3>
+                  <h3 className="font-medium text-stone-100 mt-1 hover:text-gold-400 cursor-pointer line-clamp-2">
+                    {product.name}
+                  </h3>
                 </Link>
                 <p className="text-stone-500 text-xs mt-1">{parseFloat(product.weight_grams).toFixed(1)}g</p>
                 {reviewsSummary[product.id]?.count > 0 && (
                   <div className="flex items-center gap-1 mt-1.5">
                     <div className="flex gap-0.5">
                       {[1, 2, 3, 4, 5].map((s) => (
-                        <Star key={s} size={11} className={s <= Math.round(reviewsSummary[product.id].avgRating) ? "text-gold-400 fill-gold-400" : "text-stone-700"} />
+                        <Star
+                          key={s}
+                          size={11}
+                          className={
+                            s <= Math.round(reviewsSummary[product.id].avgRating)
+                              ? "text-gold-400 fill-gold-400"
+                              : "text-stone-700"
+                          }
+                        />
                       ))}
                     </div>
                     <span className="text-xs text-stone-500">({reviewsSummary[product.id].count})</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between mt-3">
-                  <span className="text-gold-400 font-semibold">${parseFloat(product.price_usd).toLocaleString()}</span>
-                  <button onClick={() => addToCart(product.id)} disabled={!product.in_stock} className="flex items-center gap-1.5 btn-gold text-xs py-1.5 px-3 disabled:opacity-40 disabled:cursor-not-allowed">
+                  <span className="text-gold-400 font-semibold">
+                    ${parseFloat(product.price_usd).toLocaleString()}
+                  </span>
+                  <button
+                    onClick={() => addToCart(product.id)}
+                    disabled={!product.in_stock}
+                    className="flex items-center gap-1.5 btn-gold text-xs py-1.5 px-3 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
                     <ShoppingCart size={13} />Add
                   </button>
                 </div>
@@ -327,28 +425,45 @@ export default function ShopPage() {
         <div className="text-center py-24 text-stone-500">No products found.</div>
       )}
 
-      {/* Verified Gold Owner Certificate */}
+      {/* ── Verified Gold Owner Certificate ── */}
       <div className="mt-16 flex flex-col items-center">
         <p className="text-gold-400 font-serif text-xl font-bold mb-4">Verified Gold Owner</p>
         <div className="max-w-sm w-full rounded-2xl overflow-hidden border border-gold-500/30 shadow-xl">
-          <img src="https://i.imgur.com/KFi4n7z.jpeg" alt="Gold Ownership Certificate - Amira Aldahab" className="w-full" />
+          <img
+            src="https://i.imgur.com/KFi4n7z.jpeg"
+            alt="Gold Ownership Certificate - Amira Aldahab"
+            className="w-full"
+          />
         </div>
-        <p className="text-stone-400 text-sm text-center mt-3">Amira Aldahab — Certified 1kg Fine Gold Owner · Serial AA01357</p>
+        <p className="text-stone-400 text-sm text-center mt-3">
+          Amira Aldahab — Certified 1kg Fine Gold Owner · Serial AA01357
+        </p>
       </div>
 
       {/* ── Testimonials Section ── */}
       <div className="mt-20">
         <div className="text-center mb-10">
-          <p className="text-gold-500 text-sm font-semibold uppercase tracking-widest mb-2">What Our Investors Say</p>
+          <p className="text-gold-500 text-sm font-semibold uppercase tracking-widest mb-2">
+            What Our Investors Say
+          </p>
           <h2 className="text-2xl font-serif text-stone-100">Trusted by Thousands Worldwide</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {TESTIMONIALS.map((t) => (
-            <div key={t.name} className="relative rounded-xl border border-stone-800 bg-stone-900/50 p-6 flex flex-col gap-4 hover:border-gold-500/30 transition-colors duration-300">
-              <div className="absolute top-4 right-5 text-4xl text-gold-500/10 font-serif leading-none select-none">"</div>
+            <div
+              key={t.name}
+              className="relative rounded-xl border border-stone-800 bg-stone-900/50 p-6 flex flex-col gap-4 hover:border-gold-500/30 transition-colors duration-300"
+            >
+              <div className="absolute top-4 right-5 text-4xl text-gold-500/10 font-serif leading-none select-none">
+                "
+              </div>
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((s) => (
-                  <Star key={s} size={13} className={s <= t.rating ? "text-gold-400 fill-gold-400" : "text-stone-700"} />
+                  <Star
+                    key={s}
+                    size={13}
+                    className={s <= t.rating ? "text-gold-400 fill-gold-400" : "text-stone-700"}
+                  />
                 ))}
               </div>
               <p className="text-stone-300 text-sm leading-relaxed flex-1">"{t.text}"</p>
@@ -378,6 +493,7 @@ export default function ShopPage() {
             <p className="text-stone-400 text-sm mb-8 max-w-md mx-auto">
               Get weekly gold market updates, price alerts, and exclusive investment insights delivered to your inbox.
             </p>
+
             {nlStatus === "success" ? (
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-6 py-4">
                 <p className="text-emerald-400 font-medium">🎉 You're in! Welcome to the Amira Al Dahab community.</p>
@@ -431,8 +547,8 @@ export default function ShopPage() {
             <div className="text-5xl mb-4">🏅</div>
             <h2 className="text-2xl font-serif text-gold-400 mb-3">Born from a Passion for Gold</h2>
             <p className="text-stone-300 max-w-lg mx-auto leading-relaxed">
-              Founded in Dubai — the world's gold capital — Amira Al Dahab was built to make
-              premium gold investment accessible to everyone, everywhere.
+              Founded in Dubai — the world's gold capital — Amira Al Dahab was built to make premium gold
+              investment accessible to everyone, everywhere.
             </p>
           </div>
         </div>
@@ -445,19 +561,19 @@ export default function ShopPage() {
               mission: to give everyday investors direct access to real, certified gold at transparent prices.
             </p>
             <p>
-              Rooted in Dubai's thriving gold trade and inspired by the region's deep cultural connection
-              to precious metals, we bridge the gap between traditional gold markets and modern digital
-              investment. Whether you're buying your first gold coin or building a serious portfolio,
-              we're here to guide you every step of the way.
+              Rooted in Dubai's thriving gold trade and inspired by the region's deep cultural connection to
+              precious metals, we bridge the gap between traditional gold markets and modern digital investment.
+              Whether you're buying your first gold coin or building a serious portfolio, we're here to guide
+              you every step of the way.
             </p>
           </section>
 
           <section>
             <h2 className="text-gold-400 font-semibold text-lg mb-3">Why Gold?</h2>
             <p>
-              Gold has preserved wealth for thousands of years. It hedges against inflation, protects
-              against currency collapse, and remains one of the most liquid assets in the world. In
-              uncertain times, gold endures. We believe everyone deserves a piece of that security.
+              Gold has preserved wealth for thousands of years. It hedges against inflation, protects against
+              currency collapse, and remains one of the most liquid assets in the world. In uncertain times,
+              gold endures. We believe everyone deserves a piece of that security.
             </p>
           </section>
 
@@ -484,33 +600,40 @@ export default function ShopPage() {
           <section>
             <h2 className="text-gold-400 font-semibold text-lg mb-3">Based in Dubai</h2>
             <p>
-              Dubai is home to the famous Gold Souk — one of the largest gold markets in the world.
-              Our roots in this city give us unparalleled access to certified refineries, competitive
-              pricing, and a deep understanding of the global gold trade. When you invest with
-              Amira Al Dahab, you're connected to the heart of the world's gold market.
+              Dubai is home to the famous Gold Souk — one of the largest gold markets in the world. Our roots
+              in this city give us unparalleled access to certified refineries, competitive pricing, and a deep
+              understanding of the global gold trade. When you invest with Amira Al Dahab, you're connected to
+              the heart of the world's gold market.
             </p>
           </section>
 
           <section>
             <h2 className="text-gold-400 font-semibold text-lg mb-3">Our Commitment</h2>
             <p>
-              Transparency, security, and trust are at the core of everything we do. We publish
-              live gold prices, provide full product documentation, and are always available to
-              answer your questions. Your wealth is safe with us.
+              Transparency, security, and trust are at the core of everything we do. We publish live gold
+              prices, provide full product documentation, and are always available to answer your questions.
+              Your wealth is safe with us.
             </p>
           </section>
         </div>
 
         <div className="mt-14 border border-gold-500/20 rounded-2xl p-8 text-center bg-stone-900/30 max-w-3xl mx-auto">
           <h3 className="text-xl font-serif text-gold-400 mb-2">Ready to Start Investing?</h3>
-          <p className="text-stone-400 mb-5 text-sm">Browse our certified gold collection or start with a fractional investment today.</p>
+          <p className="text-stone-400 mb-5 text-sm">
+            Browse our certified gold collection or start with a fractional investment today.
+          </p>
           <div className="flex justify-center gap-4 flex-wrap">
-            <Link href="/invest"><span className="btn-gold px-6 py-2 cursor-pointer">Invest Now</span></Link>
-            <Link href="/wallet"><span className="border border-gold-500/40 text-gold-400 hover:bg-stone-800 px-6 py-2 rounded-lg cursor-pointer transition-colors">Deposit Crypto</span></Link>
+            <Link href="/invest">
+              <span className="btn-gold px-6 py-2 cursor-pointer">Invest Now</span>
+            </Link>
+            <Link href="/wallet">
+              <span className="border border-gold-500/40 text-gold-400 hover:bg-stone-800 px-6 py-2 rounded-lg cursor-pointer transition-colors">
+                Deposit Crypto
+              </span>
+            </Link>
           </div>
         </div>
       </div>
-
     </div>
   );
 }
