@@ -12,7 +12,8 @@ import adminRouter from "./routes/admin";
 import { reviewsRouter } from "./routes/reviews";
 import { paymentsRouter } from "./routes/payments";
 import { withdrawalsRouter } from "./routes/withdrawals";
-import { priceAlertsRouter, checkPriceAlerts } from "./routes/priceAlerts"; // ✅ ADD THIS
+import { priceAlertsRouter, checkPriceAlerts } from "./routes/priceAlerts";
+import { referralsRouter } from "./routes/referrals"; // ✅ ADD THIS
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -35,11 +36,11 @@ app.use("/api/price", priceRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/withdrawals", withdrawalsRouter);
-app.use("/api/price-alerts", priceAlertsRouter); // ✅ ADD THIS
+app.use("/api/price-alerts", priceAlertsRouter);
+app.use("/api/referrals", referralsRouter); // ✅ ADD THIS
 
-// ✅ ADD THIS — check alerts every 5 minutes
 setInterval(checkPriceAlerts, 5 * 60 * 1000);
-checkPriceAlerts(); // run once on startup
+checkPriceAlerts();
 
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.resolve(process.cwd(), "..", "client", "dist");
