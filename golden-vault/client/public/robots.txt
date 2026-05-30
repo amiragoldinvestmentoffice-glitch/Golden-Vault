@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /wallet
+Disallow: /portfolio
+Disallow: /orders
+Disallow: /api/
+
+Sitemap: https://www.amira-al-dahab.com/sitemap.xml
