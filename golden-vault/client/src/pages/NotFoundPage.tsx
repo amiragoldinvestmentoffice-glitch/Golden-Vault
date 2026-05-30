@@ -30,7 +30,8 @@ export default function NotFoundPage() {
       <p className="mt-12 text-stone-600 text-xs">
         Need help?{" "}
         
-          href="https://wa.me/971500000000"
+          <a
+            href="https://wa.me/971500000000"
           target="_blank"
           rel="noopener noreferrer"
           className="text-gold-500/60 hover:text-gold-400 transition-colors"
