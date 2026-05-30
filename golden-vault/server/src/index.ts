@@ -1,3 +1,4 @@
+// server/src/index.ts  (UPDATED — add the 3 new lines marked with ✅)
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -10,11 +11,16 @@ import { investmentsRouter } from "./routes/investments";
 import { priceRouter } from "./routes/price";
 import adminRouter from "./routes/admin";
 import { reviewsRouter } from "./routes/reviews";
+import { paymentsRouter } from "./routes/payments"; // ✅ ADD THIS LINE
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.use(cors({ origin: true, credentials: true }));
+
+// ✅ IMPORTANT: raw body for webhook MUST come before express.json()
+app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
+
 app.use(express.json());
 app.use(supabaseAuth);
 
@@ -29,6 +35,7 @@ app.use("/api/orders", ordersRouter);
 app.use("/api/investments", investmentsRouter);
 app.use("/api/price", priceRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/payments", paymentsRouter); // ✅ ADD THIS LINE
 
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.resolve(process.cwd(), "..", "client", "dist");
