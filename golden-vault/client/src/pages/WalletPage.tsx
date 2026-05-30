@@ -4,6 +4,7 @@ import { useAuth } from "../lib/auth";
 import { Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import SEO from "../components/SEO";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -108,7 +109,6 @@ export default function WalletPage() {
   const [pollCount, setPollCount] = useState(0);
   const pollRef                   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Withdrawal form state
   const [wAmount, setWAmount]     = useState("");
   const [wAddress, setWAddress]   = useState("");
   const [wCurrency, setWCurrency] = useState(WITHDRAW_CURRENCIES[0]);
@@ -116,7 +116,6 @@ export default function WalletPage() {
   const [wError, setWError]       = useState<string | null>(null);
   const [wSuccess, setWSuccess]   = useState(false);
 
-  // KYC state
   const [kycStep, setKycStep]     = useState<KycStep>("idle");
   const [kycFullName, setKycFullName] = useState("");
   const [kycCountry, setKycCountry]   = useState("");
@@ -133,7 +132,7 @@ export default function WalletPage() {
     refetchInterval: 30_000,
   });
 
-  const { data: withdrawals = [], isLoading: withdrawalsLoading } = useQuery<Withdrawal[]>({
+  const { data: withdrawals = [] } = useQuery<Withdrawal[]>({
     queryKey: ["withdrawals"],
     queryFn: () => api.get("/withdrawals").then((r) => r.data),
     enabled: !!user,
@@ -207,14 +206,11 @@ export default function WalletPage() {
     const amt = parseFloat(wAmount);
     if (!amt || amt < 10) { setWError("Minimum withdrawal is $10"); return; }
     if (!wAddress.trim()) { setWError("Please enter your crypto address"); return; }
-
-    // KYC gate for withdrawals >= threshold
     if (amt >= KYC_THRESHOLD && kycStatus?.status !== "approved") {
       setKycStep("form");
       setWError(`Withdrawals of $${KYC_THRESHOLD}+ require identity verification.`);
       return;
     }
-
     setWLoading(true);
     setWError(null);
     try {
@@ -283,6 +279,11 @@ export default function WalletPage() {
   if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
+        <SEO
+          title="Wallet"
+          description="Deposit and withdraw funds from your Amira Al Dahab gold investment account."
+          path="/wallet"
+        />
         <p className="text-stone-400 mb-4">Sign in to deposit funds</p>
         <Link href="/sign-in"><button className="btn-gold">Sign In</button></Link>
       </div>
@@ -291,14 +292,17 @@ export default function WalletPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
+      <SEO
+        title="Wallet"
+        description="Deposit and withdraw funds from your Amira Al Dahab gold investment account."
+        path="/wallet"
+      />
 
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-serif text-gold-400 mb-1">Wallet</h1>
         <p className="text-stone-400 text-sm">Deposit or withdraw funds from your account</p>
       </div>
 
-      {/* KYC Status Banner */}
       {kycStatus?.status === "approved" && (
         <div className="flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 mb-6">
           <ShieldCheck size={18} className="text-green-400 shrink-0" />
@@ -322,7 +326,6 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* ── STEP 1: SELECT ── */}
       {step === "select" && (
         <div className="space-y-6">
           <div className="card p-6 border border-stone-700/60">
@@ -382,7 +385,6 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* ── STEP 2: PAYING ── */}
       {step === "paying" && payment && (
         <div className="space-y-5">
           <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
@@ -442,7 +444,6 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* ── STEP 3: CONFIRMED ── */}
       {step === "confirmed" && (
         <div className="text-center space-y-6">
           <div className="w-20 h-20 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center mx-auto">
@@ -462,7 +463,6 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* ── KYC Form Modal ── */}
       {kycStep === "form" && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
           <div className="bg-stone-900 border border-stone-700 rounded-2xl p-6 w-full max-w-md">
@@ -525,7 +525,6 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* KYC Submitted confirmation */}
       {kycStep === "submitted" && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
           <div className="bg-stone-900 border border-stone-700 rounded-2xl p-8 w-full max-w-sm text-center">
@@ -539,7 +538,6 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* ── Withdrawal Form ── */}
       <div className="mt-14">
         <div className="flex items-center gap-2 mb-5">
           <ArrowUpRight size={18} className="text-gold-400" />
@@ -561,7 +559,6 @@ export default function WalletPage() {
                 <span className="text-amber-400/80"> Withdrawals of $500+ require identity verification.</span>
               )}
             </p>
-
             <div>
               <label className="block text-stone-300 text-sm font-medium mb-2">Amount (USD)</label>
               <div className="relative">
@@ -571,7 +568,6 @@ export default function WalletPage() {
                   className="w-full pl-7 pr-4 py-3 bg-stone-800 border border-stone-700 rounded-lg text-stone-100 focus:outline-none focus:border-gold-500 transition-colors" />
               </div>
             </div>
-
             <div>
               <label className="block text-stone-300 text-sm font-medium mb-2">Receive In</label>
               <div className="flex gap-2 flex-wrap">
@@ -583,7 +579,6 @@ export default function WalletPage() {
                 ))}
               </div>
             </div>
-
             <div>
               <label className="block text-stone-300 text-sm font-medium mb-2">Your {wCurrency.label} Address</label>
               <input type="text" value={wAddress} onChange={e => setWAddress(e.target.value)}
@@ -591,9 +586,7 @@ export default function WalletPage() {
                 className="w-full px-4 py-3 bg-stone-800 border border-stone-700 rounded-lg text-stone-100 text-sm font-mono focus:outline-none focus:border-gold-500 transition-colors placeholder-stone-600" />
               <p className="text-stone-600 text-xs mt-1">Network: {wCurrency.network} — double-check your address before submitting.</p>
             </div>
-
             {wError && <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-red-400 text-sm">{wError}</div>}
-
             <button onClick={submitWithdrawal} disabled={wLoading || !wAmount || parseFloat(wAmount) < 10 || !wAddress.trim()}
               className="w-full btn-gold py-3 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {wLoading ? <><Loader2 size={16} className="animate-spin" /> Submitting...</> : <>Request Withdrawal <ArrowUpRight size={16} /></>}
@@ -602,7 +595,6 @@ export default function WalletPage() {
         )}
       </div>
 
-      {/* ── Withdrawal History ── */}
       {withdrawals.length > 0 && (
         <div className="mt-10">
           <h3 className="text-stone-400 text-sm font-medium mb-3">Withdrawal Requests</h3>
@@ -632,7 +624,6 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* ── Deposit History ── */}
       <div className="mt-10">
         <div className="flex items-center gap-2 mb-5">
           <History size={18} className="text-gold-400" />
