@@ -206,7 +206,7 @@ export default function ShopPage() {
           muted
           loop
           playsInline
-          className="w-full max-h-[480px] object-cover"
+          className="w-full max-h-[480px] object-contain bg-stone-950"
         />
         <div className="absolute bottom-6 left-6 z-20">
           <p className="text-gold-400 font-serif text-2xl font-bold drop-shadow-lg">Amira Al Dahab</p>
