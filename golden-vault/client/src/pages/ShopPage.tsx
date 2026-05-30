@@ -256,7 +256,8 @@ export default function ShopPage() {
       </div>
 
          {/* ── Brand Video Section ── */}
-<div className={`mb-10 grid gap-4 ${VIDEOS.length === 1 ? "grid-cols-1 max-w-2xl mx-auto" : "grid-cols-1 sm:grid-cols-2"}`}>
+      <div className="mb-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          
   {VIDEOS.map((v) => (
     <VideoCard key={v.src} src={v.src} label={v.label} />
   ))}
