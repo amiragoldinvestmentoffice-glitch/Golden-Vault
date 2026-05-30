@@ -25,6 +25,13 @@ interface ReviewSummary {
   count: number;
 }
 
+const STATS = [
+  { icon: "🏅", value: "2,400+", label: "Happy Investors" },
+  { icon: "💰", value: "$8.3M+", label: "in Gold Sold" },
+  { icon: "🌍", value: "47", label: "Countries Served" },
+  { icon: "⭐", value: "4.9/5", label: "Average Rating" },
+];
+
 export default function ShopPage() {
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -73,6 +80,23 @@ export default function ShopPage() {
           </div>
         )}
       </div>
+
+      {/* ── Live Stats Banner ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+        {STATS.map((stat) => (
+          <div
+            key={stat.label}
+            className="relative overflow-hidden rounded-xl border border-stone-800 bg-stone-900/60 px-4 py-5 text-center group hover:border-gold-500/40 transition-colors duration-300"
+          >
+            {/* subtle gold glow on hover */}
+            <div className="absolute inset-0 bg-gradient-to-br from-gold-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+            <div className="text-2xl mb-1">{stat.icon}</div>
+            <div className="text-gold-400 font-serif text-xl font-bold">{stat.value}</div>
+            <div className="text-stone-500 text-xs mt-0.5 tracking-wide">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+      {/* ── End Stats Banner ── */}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
