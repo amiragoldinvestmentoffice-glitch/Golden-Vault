@@ -43,7 +43,13 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link href="/">
-              <span className="font-serif text-gold-400 text-lg font-semibold cursor-pointer tracking-wide">✦ Amira Al Dahab</span>
+              <span className="cursor-pointer flex items-center">
+                <img
+                  src="/amira_logo.png"
+                  alt="Amira Al Dahab"
+                  className="h-10 w-auto object-contain"
+                />
+              </span>
             </Link>
 
             {/* Desktop nav links */}
