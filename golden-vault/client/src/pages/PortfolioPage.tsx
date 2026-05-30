@@ -5,6 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import { TrendingUp, TrendingDown, BarChart2, Bell, BellOff, Trash2, Plus, Copy, Check, Gift } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { Link } from "wouter";
+import SEO from "../components/SEO";
 
 interface GoldSummary {
   totalGrams: number;
@@ -160,6 +161,11 @@ export default function PortfolioPage() {
   if (!user) {
     return (
       <div className="max-w-lg mx-auto px-4 py-24 text-center">
+        <SEO
+          title="My Portfolio"
+          description="Track your gold and Bitcoin investments in real time with Amira Al Dahab."
+          path="/portfolio"
+        />
         <BarChart2 size={40} className="mx-auto mb-4 text-gold-500 opacity-70" />
         <p className="text-stone-400 mb-4">Sign in to view your portfolio</p>
         <Link href="/sign-in"><button className="btn-gold">Sign In</button></Link>
@@ -196,6 +202,11 @@ export default function PortfolioPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      <SEO
+        title="My Portfolio"
+        description="Track your gold and Bitcoin investments in real time with Amira Al Dahab."
+        path="/portfolio"
+      />
       <h1 className="text-2xl font-serif text-gold-400">My Portfolio</h1>
 
       {/* ── TOTAL PORTFOLIO SUMMARY ── */}
@@ -493,7 +504,6 @@ export default function PortfolioPage() {
           Earn <span className="text-gold-400 font-semibold">$10 wallet credit</span> for every friend who signs up and makes their first deposit.
         </p>
 
-        {/* Stats row */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           {[
             { label: "Friends Referred", value: referralStats?.totalReferred ?? 0 },
@@ -507,7 +517,6 @@ export default function PortfolioPage() {
           ))}
         </div>
 
-        {/* Referral link */}
         {referralLink ? (
           <div>
             <p className="text-stone-400 text-xs mb-2 font-medium uppercase tracking-wider">Your Referral Link</p>
@@ -528,7 +537,6 @@ export default function PortfolioPage() {
           <div className="h-12 rounded-lg bg-stone-800 animate-pulse" />
         )}
       </div>
-      {/* ── End Referral Program ── */}
 
     </div>
   );
