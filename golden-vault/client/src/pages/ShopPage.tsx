@@ -32,6 +32,44 @@ const STATS = [
   { icon: "⭐", value: "4.9/5", label: "Average Rating" },
 ];
 
+const TESTIMONIALS = [
+  {
+    name: "Chidi O.",
+    location: "Lagos, Nigeria",
+    rating: 5,
+    text: "I was skeptical at first, but after my first purchase I was hooked. The gold arrived verified and the whole process was seamless. Amira Al Dahab is the real deal.",
+    avatar: "CO",
+  },
+  {
+    name: "Fatima A.",
+    location: "Accra, Ghana",
+    rating: 5,
+    text: "Finally a platform that makes gold investing feel modern. I love that I can fund my account with crypto and track my portfolio in real time. Absolutely recommend.",
+    avatar: "FA",
+  },
+  {
+    name: "Khalid M.",
+    location: "Riyadh, Saudi Arabia",
+    rating: 5,
+    text: "The spot pricing is always fair and transparent. No surprises, no hidden fees. I've been investing for 8 months now and my portfolio has grown steadily.",
+    avatar: "KM",
+  },
+  {
+    name: "Emeka J.",
+    location: "Abuja, Nigeria",
+    rating: 5,
+    text: "Customer support is outstanding. They answered all my questions within minutes via WhatsApp. The gold bar I received was exactly as described — certified 999.9 purity.",
+    avatar: "EJ",
+  },
+  {
+    name: "Aisha B.",
+    location: "Dubai, UAE",
+    rating: 5,
+    text: "As someone living in Dubai, I know gold. Amira Al Dahab's prices are competitive and the platform is incredibly easy to use. This is how gold investing should feel.",
+    avatar: "AB",
+  },
+];
+
 export default function ShopPage() {
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -88,7 +126,6 @@ export default function ShopPage() {
             key={stat.label}
             className="relative overflow-hidden rounded-xl border border-stone-800 bg-stone-900/60 px-4 py-5 text-center group hover:border-gold-500/40 transition-colors duration-300"
           >
-            {/* subtle gold glow on hover */}
             <div className="absolute inset-0 bg-gradient-to-br from-gold-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             <div className="text-2xl mb-1">{stat.icon}</div>
             <div className="text-gold-400 font-serif text-xl font-bold">{stat.value}</div>
@@ -169,6 +206,48 @@ export default function ShopPage() {
         </div>
         <p className="text-stone-400 text-sm text-center mt-3">Amira Aldahab — Certified 1kg Fine Gold Owner · Serial AA01357</p>
       </div>
+
+      {/* ── Testimonials Section ── */}
+      <div className="mt-20">
+        <div className="text-center mb-10">
+          <p className="text-gold-500 text-sm font-semibold uppercase tracking-widest mb-2">What Our Investors Say</p>
+          <h2 className="text-2xl font-serif text-stone-100">Trusted by Thousands Worldwide</h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {TESTIMONIALS.map((t) => (
+            <div
+              key={t.name}
+              className="relative rounded-xl border border-stone-800 bg-stone-900/50 p-6 flex flex-col gap-4 hover:border-gold-500/30 transition-colors duration-300"
+            >
+              {/* Quote mark */}
+              <div className="absolute top-4 right-5 text-4xl text-gold-500/10 font-serif leading-none select-none">"</div>
+
+              {/* Stars */}
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star key={s} size={13} className={s <= t.rating ? "text-gold-400 fill-gold-400" : "text-stone-700"} />
+                ))}
+              </div>
+
+              {/* Text */}
+              <p className="text-stone-300 text-sm leading-relaxed flex-1">"{t.text}"</p>
+
+              {/* Author */}
+              <div className="flex items-center gap-3 pt-2 border-t border-stone-800">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold-500/30 to-gold-700/20 border border-gold-500/30 flex items-center justify-center text-gold-400 text-xs font-bold shrink-0">
+                  {t.avatar}
+                </div>
+                <div>
+                  <div className="text-stone-100 text-sm font-medium">{t.name}</div>
+                  <div className="text-stone-500 text-xs">{t.location}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* ── End Testimonials ── */}
 
       {/* ── About Section ────────────────────────────────────── */}
       <div className="mt-24 border-t border-stone-800 pt-20">
