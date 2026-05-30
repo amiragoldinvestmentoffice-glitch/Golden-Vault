@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { TrendingUp, TrendingDown, BarChart2, Bitcoin, Bell, BellOff, Trash2, Plus } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart2, Bell, BellOff, Trash2, Plus, Copy, Check, Gift } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { Link } from "wouter";
 
@@ -32,19 +32,29 @@ interface PriceAlert {
   created_at: string;
 }
 
+interface ReferralCode {
+  code: string;
+  user_id: string;
+}
+
+interface ReferralStats {
+  totalReferred: number;
+  totalEarned: number;
+  pendingRewards: number;
+}
+
 const OZ_PER_GRAM = 31.1035;
 
 export default function PortfolioPage() {
   const { user, session } = useAuth();
   const qc = useQueryClient();
 
-  // Alert form state
   const [alertTarget, setAlertTarget] = useState("");
   const [alertDirection, setAlertDirection] = useState<"above" | "below">("above");
   const [alertError, setAlertError] = useState<string | null>(null);
   const [alertSuccess, setAlertSuccess] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Gold portfolio
   const { data: goldData, isLoading: goldLoading } = useQuery<{
     investments: unknown[];
     summary: GoldSummary;
@@ -54,13 +64,11 @@ export default function PortfolioPage() {
     enabled: !!user,
   });
 
-  // Gold price history
   const { data: history = [] } = useQuery<Array<{ date: string; price: number }>>({
     queryKey: ["price-history"],
     queryFn: () => api.get("/investments/price-history").then((r) => r.data),
   });
 
-  // BTC payment history
   const { data: btcPayments = [] } = useQuery<BtcPayment[]>({
     queryKey: ["crypto-payments"],
     queryFn: async () => {
@@ -73,7 +81,6 @@ export default function PortfolioPage() {
     enabled: !!user && !!session,
   });
 
-  // BTC price (live)
   const { data: btcPrice } = useQuery<{ price: number }>({
     queryKey: ["btc-price"],
     queryFn: async () => {
@@ -84,14 +91,12 @@ export default function PortfolioPage() {
     refetchInterval: 60000,
   });
 
-  // Live spot price (for alert context)
   const { data: price } = useQuery({
     queryKey: ["price"],
     queryFn: () => api.get("/price").then((r) => r.data),
     refetchInterval: 30_000,
   });
 
-  // Price alerts
   const { data: alerts = [], isLoading: alertsLoading } = useQuery<PriceAlert[]>({
     queryKey: ["price-alerts"],
     queryFn: () => api.get("/price-alerts").then((r) => r.data),
@@ -99,7 +104,18 @@ export default function PortfolioPage() {
     refetchInterval: 60_000,
   });
 
-  // Create alert mutation
+  const { data: referralCode } = useQuery<ReferralCode>({
+    queryKey: ["referral-code"],
+    queryFn: () => api.get("/referrals/my-code").then((r) => r.data),
+    enabled: !!user,
+  });
+
+  const { data: referralStats } = useQuery<ReferralStats>({
+    queryKey: ["referral-stats"],
+    queryFn: () => api.get("/referrals/stats").then((r) => r.data),
+    enabled: !!user,
+  });
+
   const createAlert = useMutation({
     mutationFn: (body: { targetPricePerOz: number; direction: "above" | "below" }) =>
       api.post("/price-alerts", body).then((r) => r.data),
@@ -115,7 +131,6 @@ export default function PortfolioPage() {
     },
   });
 
-  // Delete alert mutation
   const deleteAlert = useMutation({
     mutationFn: (id: number) => api.delete(`/price-alerts/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["price-alerts"] }),
@@ -131,14 +146,23 @@ export default function PortfolioPage() {
     createAlert.mutate({ targetPricePerOz: target, direction: alertDirection });
   };
 
+  const referralLink = referralCode
+    ? `${window.location.origin}/sign-in?ref=${referralCode.code}`
+    : null;
+
+  const copyReferralLink = () => {
+    if (!referralLink) return;
+    navigator.clipboard.writeText(referralLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   if (!user) {
     return (
       <div className="max-w-lg mx-auto px-4 py-24 text-center">
         <BarChart2 size={40} className="mx-auto mb-4 text-gold-500 opacity-70" />
         <p className="text-stone-400 mb-4">Sign in to view your portfolio</p>
-        <Link href="/sign-in">
-          <button className="btn-gold">Sign In</button>
-        </Link>
+        <Link href="/sign-in"><button className="btn-gold">Sign In</button></Link>
       </div>
     );
   }
@@ -339,7 +363,6 @@ export default function PortfolioPage() {
           Get notified when gold hits your target price. Alerts are checked every 5 minutes.
         </p>
 
-        {/* Create alert form */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="flex gap-2">
             <button
@@ -363,7 +386,6 @@ export default function PortfolioPage() {
               ▼ Below
             </button>
           </div>
-
           <div className="relative flex-1">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">$</span>
             <input
@@ -375,7 +397,6 @@ export default function PortfolioPage() {
               className="w-full pl-7 pr-4 py-2 bg-stone-800 border border-stone-700 rounded-lg text-stone-100 text-sm focus:outline-none focus:border-gold-500 transition-colors"
             />
           </div>
-
           <button
             onClick={submitAlert}
             disabled={createAlert.isPending || !alertTarget}
@@ -387,9 +408,7 @@ export default function PortfolioPage() {
         </div>
 
         {alertError && (
-          <div className="mb-4 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-            {alertError}
-          </div>
+          <div className="mb-4 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{alertError}</div>
         )}
         {alertSuccess && (
           <div className="mb-4 text-emerald-400 text-xs bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
@@ -397,7 +416,6 @@ export default function PortfolioPage() {
           </div>
         )}
 
-        {/* Active alerts */}
         {alertsLoading ? (
           <div className="space-y-2">
             {[1, 2].map((i) => <div key={i} className="h-12 rounded-lg bg-stone-800 animate-pulse" />)}
@@ -417,9 +435,7 @@ export default function PortfolioPage() {
                       <Bell size={14} className="text-gold-400 shrink-0" />
                       <div>
                         <span className={`text-xs font-medium px-1.5 py-0.5 rounded mr-2 ${
-                          a.direction === "above"
-                            ? "bg-emerald-500/15 text-emerald-400"
-                            : "bg-red-500/15 text-red-400"
+                          a.direction === "above" ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"
                         }`}>
                           {a.direction === "above" ? "▲ above" : "▼ below"}
                         </span>
@@ -428,18 +444,13 @@ export default function PortfolioPage() {
                         </span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => deleteAlert.mutate(a.id)}
-                      className="text-stone-600 hover:text-red-400 transition-colors p-1"
-                      title="Delete alert"
-                    >
+                    <button onClick={() => deleteAlert.mutate(a.id)} className="text-stone-600 hover:text-red-400 transition-colors p-1">
                       <Trash2 size={14} />
                     </button>
                   </div>
                 ))}
               </>
             )}
-
             {triggeredAlerts.length > 0 && (
               <>
                 <p className="text-stone-500 text-xs uppercase tracking-wide mb-2 mt-4">Triggered</p>
@@ -461,10 +472,7 @@ export default function PortfolioPage() {
                         )}
                       </div>
                     </div>
-                    <button
-                      onClick={() => deleteAlert.mutate(a.id)}
-                      className="text-stone-700 hover:text-red-400 transition-colors p-1"
-                    >
+                    <button onClick={() => deleteAlert.mutate(a.id)} className="text-stone-700 hover:text-red-400 transition-colors p-1">
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -474,7 +482,53 @@ export default function PortfolioPage() {
           </div>
         )}
       </div>
-      {/* ── End Price Alerts ── */}
+
+      {/* ── REFERRAL PROGRAM ── */}
+      <div className="card p-5 border border-stone-700/60">
+        <div className="flex items-center gap-2 mb-1">
+          <Gift size={18} className="text-gold-400" />
+          <h2 className="font-semibold text-gold-400">Refer & Earn</h2>
+        </div>
+        <p className="text-stone-500 text-xs mb-5">
+          Earn <span className="text-gold-400 font-semibold">$10 wallet credit</span> for every friend who signs up and makes their first deposit.
+        </p>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          {[
+            { label: "Friends Referred", value: referralStats?.totalReferred ?? 0 },
+            { label: "Pending Rewards", value: referralStats?.pendingRewards ?? 0 },
+            { label: "Total Earned", value: `$${(referralStats?.totalEarned ?? 0).toFixed(2)}` },
+          ].map((stat) => (
+            <div key={stat.label} className="bg-stone-800/50 rounded-xl p-3 text-center border border-stone-700/40">
+              <div className="text-gold-400 font-bold text-lg">{stat.value}</div>
+              <div className="text-stone-500 text-xs mt-0.5">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Referral link */}
+        {referralLink ? (
+          <div>
+            <p className="text-stone-400 text-xs mb-2 font-medium uppercase tracking-wider">Your Referral Link</p>
+            <div className="flex items-center gap-2 bg-stone-800 border border-stone-700 rounded-lg px-4 py-3">
+              <span className="text-stone-300 text-sm font-mono flex-1 truncate">{referralLink}</span>
+              <button
+                onClick={copyReferralLink}
+                className="flex items-center gap-1 text-gold-400 hover:text-gold-300 text-xs transition-colors shrink-0"
+              >
+                {copied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy</>}
+              </button>
+            </div>
+            <p className="text-stone-600 text-xs mt-2">
+              Share this link — when your friend signs up and deposits, you both benefit.
+            </p>
+          </div>
+        ) : (
+          <div className="h-12 rounded-lg bg-stone-800 animate-pulse" />
+        )}
+      </div>
+      {/* ── End Referral Program ── */}
 
     </div>
   );
