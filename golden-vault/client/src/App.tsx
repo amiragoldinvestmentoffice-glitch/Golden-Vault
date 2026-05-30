@@ -42,6 +42,7 @@ export default function App() {
       <TrustPopup />
 
       {/* WhatsApp Floating Button */}
+      <a
       
         href={waLink}
         target="_blank"
