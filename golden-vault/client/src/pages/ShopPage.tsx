@@ -160,7 +160,11 @@ export default function ShopPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <SEO title="Shop Premium Gold" description="Browse investment-grade gold bars, coins and bullion. Live spot prices. Secure shipping worldwide from Dubai." />
+      <SEO
+        title="Shop Premium Gold"
+        description="Browse investment-grade gold bars, coins and bullion. Live spot prices. Secure shipping worldwide from Dubai."
+        path="/"
+      />
 
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
