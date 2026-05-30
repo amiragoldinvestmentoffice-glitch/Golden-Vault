@@ -4,7 +4,8 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply text-stone-900;
+    background-color: #DAEEFF;
     font-family: system-ui, -apple-system, sans-serif;
   }
   h1, h2, h3 {
@@ -14,77 +15,55 @@
 
 @layer components {
   .btn-gold {
-    @apply bg-gold-500 hover:bg-gold-400 text-slate-900 font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm;
+    @apply bg-gold-500 hover:bg-gold-400 text-stone-900 font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm;
   }
   .btn-outline {
     @apply border border-gold-500 text-gold-600 hover:bg-gold-500/10 px-4 py-2 rounded-lg transition-colors;
   }
   .card {
-    @apply bg-white border border-blue-100 rounded-xl shadow-sm;
+    @apply bg-white border border-stone-200 rounded-xl shadow-sm;
   }
 }
 
-/* ─────────────────────────────────────────
-   LIGHT NAVY PALETTE
-   --navy-50:   #EEF3FB   (page bg)
-   --navy-100:  #D9E6F5   (subtle tint / card bg)
-   --navy-200:  #BDD0EC   (borders, dividers)
-   --navy-300:  #8AAFD8   (muted borders)
-   --navy-600:  #2D567A   (secondary text)
-   --navy-700:  #1E3F63   (body text)
-   --navy-800:  #142E4D   (headings)
-   --navy-900:  #0B1E35   (deepest text)
-   ───────────────────────────────────────── */
+/* ── Global light theme overrides ── */
+.bg-stone-950 { background-color: #DAEEFF !important; }
+.bg-stone-900 { background-color: #EBF6FF !important; }
+.bg-stone-900\/60 { background-color: rgba(235,246,255,0.6) !important; }
+.bg-stone-900\/50 { background-color: rgba(235,246,255,0.5) !important; }
+.bg-stone-900\/40 { background-color: rgba(235,246,255,0.4) !important; }
+.bg-stone-900\/30 { background-color: rgba(235,246,255,0.3) !important; }
+.bg-stone-800 { background-color: #C8E8FF !important; }
+.bg-stone-800\/50 { background-color: rgba(200,232,255,0.5) !important; }
+.border-stone-800 { border-color: #A8D4F5 !important; }
+.border-stone-700 { border-color: #90C4EE !important; }
+.text-stone-100 { color: #1C1917 !important; }
+.text-stone-300 { color: #44403C !important; }
+.text-stone-400 { color: #78716C !important; }
+.text-stone-500 { color: #A8A29E !important; }
+.text-stone-600 { color: #57534E !important; }
+.placeholder\:text-stone-600::placeholder { color: #A8A29E !important; }
+.placeholder\:text-stone-500::placeholder { color: #A8A29E !important; }
 
-/* ── Background overrides ── */
-.bg-stone-950 { background-color: #E6EEF8 !important; }
-.bg-stone-900 { background-color: #EEF3FB !important; }
-.bg-stone-800 { background-color: #D9E6F5 !important; }
-.bg-stone-900\/50 { background-color: rgba(209, 228, 248, 0.50) !important; }
-.bg-stone-900\/40 { background-color: rgba(209, 228, 248, 0.40) !important; }
-.bg-stone-900\/30 { background-color: rgba(209, 228, 248, 0.30) !important; }
-.bg-stone-800\/50 { background-color: rgba(189, 208, 236, 0.50) !important; }
-
-/* ── Border overrides ── */
-.border-stone-800 { border-color: #BDD0EC !important; }
-.border-stone-700 { border-color: #8AAFD8 !important; }
-
-/* ── Text overrides ── */
-.text-stone-100 { color: #0B1E35 !important; }   /* near-black navy */
-.text-stone-300 { color: #142E4D !important; }   /* dark navy heading */
-.text-stone-400 { color: #2D567A !important; }   /* secondary navy */
-.text-stone-500 { color: #5A84A8 !important; }   /* muted navy */
-.text-stone-600 { color: #1E3F63 !important; }   /* body navy */
-
-.placeholder\:text-stone-600::placeholder { color: #7AAAC8 !important; }
-.placeholder\:text-stone-500::placeholder { color: #7AAAC8 !important; }
-
-/* ── Inputs on light navy bg ── */
+/* inputs on light bg */
 input, textarea, select {
-  background-color: #EEF3FB !important;
-  color: #0B1E35 !important;
-  border-color: #BDD0EC !important;
+  background-color: #EBF6FF !important;
+  color: #1C1917 !important;
+  border-color: #A8D4F5 !important;
 }
 input::placeholder, textarea::placeholder {
-  color: #7AAAC8 !important;
+  color: #A8A29E !important;
 }
 
 /* ── Jewel tone section accents ── */
-.jewel-navy {
-  background: linear-gradient(135deg, #0B1E35, #1E4D80);
+.jewel-purple {
+  background: linear-gradient(135deg, #4C1D95, #7C3AED);
 }
-.jewel-gold {
-  background: linear-gradient(135deg, #7C4B00, #D4A017);
-}
-.jewel-sapphire {
-  background: linear-gradient(135deg, #0D2B6B, #1A5EB8);
-}
-.jewel-teal {
-  background: linear-gradient(135deg, #0C3B45, #0E7490);
+.jewel-emerald {
+  background: linear-gradient(135deg, #064E3B, #047857);
 }
 .jewel-ruby {
   background: linear-gradient(135deg, #881337, #E11D48);
 }
-.jewel-emerald {
-  background: linear-gradient(135deg, #064E3B, #047857);
+.jewel-gold {
+  background: linear-gradient(135deg, #713f12, #eab308);
 }
