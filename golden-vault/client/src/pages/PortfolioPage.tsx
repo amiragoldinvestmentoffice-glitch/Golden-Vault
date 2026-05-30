@@ -1,7 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { TrendingUp, TrendingDown, BarChart2, Bitcoin } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart2, Bitcoin, Bell, BellOff, Trash2, Plus } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { Link } from "wouter";
 
@@ -22,8 +23,26 @@ interface BtcPayment {
   created_at: string;
 }
 
+interface PriceAlert {
+  id: number;
+  target_price_per_oz: number;
+  direction: "above" | "below";
+  triggered: boolean;
+  triggered_at: string | null;
+  created_at: string;
+}
+
+const OZ_PER_GRAM = 31.1035;
+
 export default function PortfolioPage() {
   const { user, session } = useAuth();
+  const qc = useQueryClient();
+
+  // Alert form state
+  const [alertTarget, setAlertTarget] = useState("");
+  const [alertDirection, setAlertDirection] = useState<"above" | "below">("above");
+  const [alertError, setAlertError] = useState<string | null>(null);
+  const [alertSuccess, setAlertSuccess] = useState(false);
 
   // Gold portfolio
   const { data: goldData, isLoading: goldLoading } = useQuery<{
@@ -58,14 +77,59 @@ export default function PortfolioPage() {
   const { data: btcPrice } = useQuery<{ price: number }>({
     queryKey: ["btc-price"],
     queryFn: async () => {
-      const res = await fetch(
-        "https://api.coinbase.com/v2/prices/BTC-USD/spot"
-      );
+      const res = await fetch("https://api.coinbase.com/v2/prices/BTC-USD/spot");
       const d = await res.json();
       return { price: parseFloat(d.data?.amount || "0") };
     },
-    refetchInterval: 60000, // refresh every minute
+    refetchInterval: 60000,
   });
+
+  // Live spot price (for alert context)
+  const { data: price } = useQuery({
+    queryKey: ["price"],
+    queryFn: () => api.get("/price").then((r) => r.data),
+    refetchInterval: 30_000,
+  });
+
+  // Price alerts
+  const { data: alerts = [], isLoading: alertsLoading } = useQuery<PriceAlert[]>({
+    queryKey: ["price-alerts"],
+    queryFn: () => api.get("/price-alerts").then((r) => r.data),
+    enabled: !!user,
+    refetchInterval: 60_000,
+  });
+
+  // Create alert mutation
+  const createAlert = useMutation({
+    mutationFn: (body: { targetPricePerOz: number; direction: "above" | "below" }) =>
+      api.post("/price-alerts", body).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["price-alerts"] });
+      setAlertTarget("");
+      setAlertError(null);
+      setAlertSuccess(true);
+      setTimeout(() => setAlertSuccess(false), 3000);
+    },
+    onError: (e: any) => {
+      setAlertError(e.response?.data?.error || "Failed to create alert");
+    },
+  });
+
+  // Delete alert mutation
+  const deleteAlert = useMutation({
+    mutationFn: (id: number) => api.delete(`/price-alerts/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["price-alerts"] }),
+  });
+
+  const submitAlert = () => {
+    const target = parseFloat(alertTarget);
+    if (!target || target < 100) {
+      setAlertError("Please enter a valid price above $100/oz");
+      return;
+    }
+    setAlertError(null);
+    createAlert.mutate({ targetPricePerOz: target, direction: alertDirection });
+  };
 
   if (!user) {
     return (
@@ -82,31 +146,29 @@ export default function PortfolioPage() {
   const s = goldData?.summary;
   const goldGain = s && s.gainLoss >= 0;
 
-  // BTC calculations
   const confirmedBtcPayments = btcPayments.filter(
     (p) => p.status === "finished" || p.status === "confirmed"
   );
   const totalBtc = confirmedBtcPayments.reduce(
-    (sum, p) => sum + (parseFloat(String(p.btc_purchased)) || 0),
-    0
+    (sum, p) => sum + (parseFloat(String(p.btc_purchased)) || 0), 0
   );
   const totalBtcInvested = confirmedBtcPayments.reduce(
-    (sum, p) => sum + (parseFloat(String(p.amount_usd)) || 0),
-    0
+    (sum, p) => sum + (parseFloat(String(p.amount_usd)) || 0), 0
   );
   const btcCurrentValue = totalBtc * (btcPrice?.price || 0);
   const btcGainLoss = btcCurrentValue - totalBtcInvested;
-  const btcGainPct =
-    totalBtcInvested > 0 ? (btcGainLoss / totalBtcInvested) * 100 : 0;
+  const btcGainPct = totalBtcInvested > 0 ? (btcGainLoss / totalBtcInvested) * 100 : 0;
   const btcGain = btcGainLoss >= 0;
 
-  // Total portfolio
   const totalInvested = (s?.totalInvested || 0) + totalBtcInvested;
   const totalCurrentValue = (s?.currentValue || 0) + btcCurrentValue;
   const totalGainLoss = totalCurrentValue - totalInvested;
-  const totalGainPct =
-    totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
+  const totalGainPct = totalInvested > 0 ? (totalGainLoss / totalInvested) * 100 : 0;
   const totalGain = totalGainLoss >= 0;
+
+  const currentSpotPerOz = price ? parseFloat(price.perOz) : null;
+  const activeAlerts = alerts.filter((a) => !a.triggered);
+  const triggeredAlerts = alerts.filter((a) => a.triggered);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -115,9 +177,7 @@ export default function PortfolioPage() {
       {/* ── TOTAL PORTFOLIO SUMMARY ── */}
       {totalInvested > 0 && (
         <div className="card p-5 border border-gold-500/20 bg-gold-500/5">
-          <p className="text-xs text-stone-500 uppercase tracking-wider mb-3">
-            Total Portfolio
-          </p>
+          <p className="text-xs text-stone-500 uppercase tracking-wider mb-3">Total Portfolio</p>
           <div className="grid grid-cols-3 gap-4">
             <div>
               <p className="text-stone-400 text-xs mb-1">Invested</p>
@@ -151,12 +211,9 @@ export default function PortfolioPage() {
           <span className="text-xl">🥇</span>
           <h2 className="text-lg font-serif text-gold-400">Gold Holdings</h2>
         </div>
-
         {goldLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="card h-24 animate-pulse" />
-            ))}
+            {[1, 2, 3, 4].map((i) => <div key={i} className="card h-24 animate-pulse" />)}
           </div>
         ) : s && s.totalInvested > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -183,9 +240,7 @@ export default function PortfolioPage() {
         ) : (
           <div className="card p-6 text-center text-stone-500 border border-stone-700/40">
             No gold investments yet.{" "}
-            <Link href="/invest">
-              <a className="text-gold-400 hover:underline">Start investing →</a>
-            </Link>
+            <Link href="/invest"><a className="text-gold-400 hover:underline">Start investing →</a></Link>
           </div>
         )}
       </div>
@@ -196,12 +251,9 @@ export default function PortfolioPage() {
           <span className="text-xl" style={{ color: "#F7931A" }}>₿</span>
           <h2 className="text-lg font-serif text-gold-400">Bitcoin Holdings</h2>
           {btcPrice && (
-            <span className="ml-auto text-xs text-stone-500">
-              BTC = ${btcPrice.price.toLocaleString()}
-            </span>
+            <span className="ml-auto text-xs text-stone-500">BTC = ${btcPrice.price.toLocaleString()}</span>
           )}
         </div>
-
         {totalBtc > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
@@ -227,9 +279,7 @@ export default function PortfolioPage() {
         ) : (
           <div className="card p-6 text-center text-stone-500 border border-stone-700/40">
             No BTC holdings yet.{" "}
-            <Link href="/wallet">
-              <a className="text-gold-400 hover:underline">Deposit crypto →</a>
-            </Link>
+            <Link href="/wallet"><a className="text-gold-400 hover:underline">Deposit crypto →</a></Link>
           </div>
         )}
       </div>
@@ -261,24 +311,171 @@ export default function PortfolioPage() {
             {confirmedBtcPayments.map((p) => (
               <div key={p.id} className="flex items-center justify-between py-2 border-b border-stone-800 last:border-0">
                 <div>
-                  <p className="text-stone-200 text-sm">
-                    ₿ {parseFloat(String(p.btc_purchased)).toFixed(8)}
-                  </p>
-                  <p className="text-stone-500 text-xs">
-                    {new Date(p.created_at).toLocaleDateString()}
-                  </p>
+                  <p className="text-stone-200 text-sm">₿ {parseFloat(String(p.btc_purchased)).toFixed(8)}</p>
+                  <p className="text-stone-500 text-xs">{new Date(p.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-stone-300 text-sm">${parseFloat(String(p.amount_usd)).toFixed(2)}</p>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    confirmed
-                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">confirmed</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* ── PRICE ALERTS ── */}
+      <div className="card p-5 border border-stone-700/60">
+        <div className="flex items-center gap-2 mb-1">
+          <Bell size={18} className="text-gold-400" />
+          <h2 className="font-semibold text-gold-400">Price Alerts</h2>
+          {currentSpotPerOz && (
+            <span className="ml-auto text-xs text-stone-500">
+              Current: ${currentSpotPerOz.toLocaleString()}/oz
+            </span>
+          )}
+        </div>
+        <p className="text-stone-500 text-xs mb-5">
+          Get notified when gold hits your target price. Alerts are checked every 5 minutes.
+        </p>
+
+        {/* Create alert form */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setAlertDirection("above")}
+              className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                alertDirection === "above"
+                  ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-400"
+                  : "border-stone-700 text-stone-400 hover:border-stone-500"
+              }`}
+            >
+              ▲ Above
+            </button>
+            <button
+              onClick={() => setAlertDirection("below")}
+              className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                alertDirection === "below"
+                  ? "bg-red-500/15 border-red-500/50 text-red-400"
+                  : "border-stone-700 text-stone-400 hover:border-stone-500"
+              }`}
+            >
+              ▼ Below
+            </button>
+          </div>
+
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">$</span>
+            <input
+              type="number"
+              min="100"
+              value={alertTarget}
+              onChange={(e) => setAlertTarget(e.target.value)}
+              placeholder="Target price per oz"
+              className="w-full pl-7 pr-4 py-2 bg-stone-800 border border-stone-700 rounded-lg text-stone-100 text-sm focus:outline-none focus:border-gold-500 transition-colors"
+            />
+          </div>
+
+          <button
+            onClick={submitAlert}
+            disabled={createAlert.isPending || !alertTarget}
+            className="flex items-center gap-1.5 btn-gold px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+          >
+            <Plus size={15} />
+            {createAlert.isPending ? "Setting…" : "Set Alert"}
+          </button>
+        </div>
+
+        {alertError && (
+          <div className="mb-4 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+            {alertError}
+          </div>
+        )}
+        {alertSuccess && (
+          <div className="mb-4 text-emerald-400 text-xs bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+            ✓ Alert set! We'll notify you when gold hits your target.
+          </div>
+        )}
+
+        {/* Active alerts */}
+        {alertsLoading ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => <div key={i} className="h-12 rounded-lg bg-stone-800 animate-pulse" />)}
+          </div>
+        ) : activeAlerts.length === 0 && triggeredAlerts.length === 0 ? (
+          <div className="text-center py-8 text-stone-600 text-sm border border-stone-800 rounded-xl">
+            No alerts set yet. Create one above.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {activeAlerts.length > 0 && (
+              <>
+                <p className="text-stone-500 text-xs uppercase tracking-wide mb-2">Active</p>
+                {activeAlerts.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between px-4 py-3 rounded-xl border border-stone-800 bg-stone-900/50">
+                    <div className="flex items-center gap-3">
+                      <Bell size={14} className="text-gold-400 shrink-0" />
+                      <div>
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded mr-2 ${
+                          a.direction === "above"
+                            ? "bg-emerald-500/15 text-emerald-400"
+                            : "bg-red-500/15 text-red-400"
+                        }`}>
+                          {a.direction === "above" ? "▲ above" : "▼ below"}
+                        </span>
+                        <span className="text-stone-200 text-sm font-medium">
+                          ${Number(a.target_price_per_oz).toLocaleString()}/oz
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteAlert.mutate(a.id)}
+                      className="text-stone-600 hover:text-red-400 transition-colors p-1"
+                      title="Delete alert"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {triggeredAlerts.length > 0 && (
+              <>
+                <p className="text-stone-500 text-xs uppercase tracking-wide mb-2 mt-4">Triggered</p>
+                {triggeredAlerts.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between px-4 py-3 rounded-xl border border-stone-800 bg-stone-900/30 opacity-60">
+                    <div className="flex items-center gap-3">
+                      <BellOff size={14} className="text-stone-500 shrink-0" />
+                      <div>
+                        <span className="text-xs text-stone-500 mr-2">
+                          {a.direction === "above" ? "▲ above" : "▼ below"}
+                        </span>
+                        <span className="text-stone-400 text-sm">
+                          ${Number(a.target_price_per_oz).toLocaleString()}/oz
+                        </span>
+                        {a.triggered_at && (
+                          <span className="ml-2 text-xs text-stone-600">
+                            · hit {new Date(a.triggered_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteAlert.mutate(a.id)}
+                      className="text-stone-700 hover:text-red-400 transition-colors p-1"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      {/* ── End Price Alerts ── */}
+
     </div>
   );
 }
