@@ -98,6 +98,8 @@ const TESTIMONIALS = [
   },
 ];
 
+const BRAND_VIDEO_URL = "https://res.cloudinary.com/dstelf8tk/video/upload/v1780156247/video_2026-05-30_16-30-47_s9uzg8.mp4";
+
 export default function ShopPage() {
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -195,6 +197,24 @@ export default function ShopPage() {
         ))}
       </div>
 
+      {/* ── Brand Video Section ── */}
+      <div className="mb-10 rounded-2xl overflow-hidden border border-gold-500/20 relative">
+        <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent z-10 pointer-events-none" />
+        <video
+          src={BRAND_VIDEO_URL}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full max-h-[480px] object-cover"
+        />
+        <div className="absolute bottom-6 left-6 z-20">
+          <p className="text-gold-400 font-serif text-2xl font-bold drop-shadow-lg">Amira Al Dahab</p>
+          <p className="text-stone-300 text-sm mt-1 drop-shadow">Premium Gold — Dubai</p>
+        </div>
+      </div>
+
+      {/* ── Search & Filter ── */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" size={16} />
@@ -309,7 +329,6 @@ export default function ShopPage() {
             <p className="text-stone-400 text-sm mb-8 max-w-md mx-auto">
               Get weekly gold market updates, price alerts, and exclusive investment insights delivered to your inbox.
             </p>
-
             {nlStatus === "success" ? (
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-6 py-4">
                 <p className="text-emerald-400 font-medium">🎉 You're in! Welcome to the Amira Al Dahab community.</p>
