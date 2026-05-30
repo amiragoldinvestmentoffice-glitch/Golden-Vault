@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, getUserId } from "../middleware/auth";
+import { sendWithdrawalReceivedEmail } from "../lib/email";
 import { z } from "zod";
 
 const supabase = createClient(
@@ -17,16 +18,11 @@ const createWithdrawalSchema = z.object({
   currency: z.string().min(1),
 });
 
-// ─────────────────────────────────────────────
-// POST /api/withdrawals
-// User submits a withdrawal request
-// ─────────────────────────────────────────────
 withdrawalsRouter.post("/", requireAuth, async (req, res) => {
   try {
     const userId = getUserId(req);
     const { amountUsd, cryptoAddress, network, currency } = createWithdrawalSchema.parse(req.body);
 
-    // Check wallet balance
     const { data: wallet } = await supabase
       .from("wallets")
       .select("balance_usd")
@@ -35,11 +31,9 @@ withdrawalsRouter.post("/", requireAuth, async (req, res) => {
 
     const balance = parseFloat(wallet?.balance_usd ?? "0");
     if (amountUsd > balance) {
-      res.status(400).json({ error: "Insufficient balance" });
-      return;
+      res.status(400).json({ error: "Insufficient balance" }); return;
     }
 
-    // Insert withdrawal request
     const { data, error } = await supabase
       .from("withdrawal_requests")
       .insert({
@@ -55,6 +49,25 @@ withdrawalsRouter.post("/", requireAuth, async (req, res) => {
 
     if (error) throw error;
 
+    // Send withdrawal received email (best-effort)
+    try {
+      const { data: userRecord } = await supabase.auth.admin.getUserById(userId);
+      const userEmail = userRecord?.user?.email;
+      const userName = userRecord?.user?.user_metadata?.full_name || "Investor";
+      if (userEmail) {
+        await sendWithdrawalReceivedEmail({
+          customerEmail: userEmail,
+          customerName: userName,
+          amountUsd,
+          currency,
+          network,
+          cryptoAddress,
+        });
+      }
+    } catch (emailErr) {
+      console.error("Withdrawal email failed (request still created):", emailErr);
+    }
+
     res.json({ success: true, withdrawal: data });
   } catch (err: any) {
     console.error("Withdrawal error:", err);
@@ -62,10 +75,6 @@ withdrawalsRouter.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// GET /api/withdrawals
-// User fetches their own withdrawal history
-// ─────────────────────────────────────────────
 withdrawalsRouter.get("/", requireAuth, async (req, res) => {
   try {
     const userId = getUserId(req);
@@ -74,7 +83,6 @@ withdrawalsRouter.get("/", requireAuth, async (req, res) => {
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-
     if (error) throw error;
     res.json(data);
   } catch (err: any) {
@@ -82,20 +90,13 @@ withdrawalsRouter.get("/", requireAuth, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// PATCH /api/withdrawals/:id  (Admin only)
-// Approve or reject a withdrawal
-// ─────────────────────────────────────────────
 withdrawalsRouter.patch("/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, adminNote } = req.body;
-
     if (!["approved", "rejected"].includes(status)) {
-      res.status(400).json({ error: "Status must be approved or rejected" });
-      return;
+      res.status(400).json({ error: "Status must be approved or rejected" }); return;
     }
-
     const { data, error } = await supabase
       .from("withdrawal_requests")
       .update({
@@ -106,7 +107,6 @@ withdrawalsRouter.patch("/:id", requireAuth, async (req, res) => {
       .eq("id", id)
       .select()
       .single();
-
     if (error) throw error;
     res.json({ success: true, withdrawal: data });
   } catch (err: any) {
