@@ -25,9 +25,9 @@
 }
 
 /* ── Global light theme overrides ── */
-.bg-stone-950 { background-color: #FBF8F0 !important; }
-.bg-stone-900 { background-color: #FFFFFF !important; }
-.bg-stone-900\/60 { background-color: rgba(255,255,255,0.6) !important; }
+.bg-stone-950 { background-color: #EDE8DF !important; }
+.bg-stone-900 { background-color: #F5F0E8 !important; }
+.bg-stone-800 { background-color: #E0D9CE !important; }
 .bg-stone-900\/50 { background-color: rgba(255,255,255,0.5) !important; }
 .bg-stone-900\/40 { background-color: rgba(255,255,255,0.4) !important; }
 .bg-stone-900\/30 { background-color: rgba(255,255,255,0.3) !important; }
