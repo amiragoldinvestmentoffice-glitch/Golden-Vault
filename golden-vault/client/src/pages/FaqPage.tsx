@@ -18,11 +18,9 @@ const faqs = [
 
 export default function FaqPage() {
   const [open, setOpen] = useState<number | null>(null);
-
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
-      <SEO title="FAQ" description="Frequently asked questions about buying gold, shipping, payments and returns at Amira Al Dahab." />
-
+      <SEO title="FAQ" description="Frequently asked questions about buying gold, shipping, payments and returns at Amira Al Dahab." path="/faq" />
       <Link href="/"><span className="text-gold-400 hover:underline cursor-pointer text-sm">← Back to Shop</span></Link>
       <h1 className="text-3xl font-serif text-gold-400 mt-4 mb-2">Frequently Asked Questions</h1>
       <p className="text-stone-400 mb-8">Everything you need to know about Amira Al Dahab.</p>
