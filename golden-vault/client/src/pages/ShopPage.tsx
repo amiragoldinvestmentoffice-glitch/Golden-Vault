@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { Link } from "wouter";
-import { ShoppingCart, Search, Star } from "lucide-react";
+import { ShoppingCart, Search, Star, Mail } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import SEO from "../components/SEO";
 
@@ -76,6 +76,12 @@ export default function ShopPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
+  // Newsletter state
+  const [nlName, setNlName] = useState("");
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlStatus, setNlStatus] = useState<"idle" | "success" | "already" | "error">("idle");
+
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["products", category, search],
     queryFn: () => api.get("/products", { params: { category, search } }).then((r) => r.data),
@@ -99,6 +105,30 @@ export default function ShopPage() {
     }
     await api.post("/cart", { productId, quantity: 1 });
     qc.invalidateQueries({ queryKey: ["cart"] });
+  };
+
+  const submitNewsletter = async () => {
+    if (!nlName.trim() || !nlEmail.trim()) return;
+    setNlLoading(true);
+    setNlStatus("idle");
+    try {
+      const res = await api.post("/newsletter/subscribe", {
+        name: nlName.trim(),
+        email: nlEmail.trim(),
+      });
+      const msg = res.data?.message;
+      if (msg === "already_subscribed") {
+        setNlStatus("already");
+      } else {
+        setNlStatus("success");
+        setNlName("");
+        setNlEmail("");
+      }
+    } catch {
+      setNlStatus("error");
+    } finally {
+      setNlLoading(false);
+    }
   };
 
   return (
@@ -133,7 +163,6 @@ export default function ShopPage() {
           </div>
         ))}
       </div>
-      {/* ── End Stats Banner ── */}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
@@ -213,27 +242,16 @@ export default function ShopPage() {
           <p className="text-gold-500 text-sm font-semibold uppercase tracking-widest mb-2">What Our Investors Say</p>
           <h2 className="text-2xl font-serif text-stone-100">Trusted by Thousands Worldwide</h2>
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {TESTIMONIALS.map((t) => (
-            <div
-              key={t.name}
-              className="relative rounded-xl border border-stone-800 bg-stone-900/50 p-6 flex flex-col gap-4 hover:border-gold-500/30 transition-colors duration-300"
-            >
-              {/* Quote mark */}
+            <div key={t.name} className="relative rounded-xl border border-stone-800 bg-stone-900/50 p-6 flex flex-col gap-4 hover:border-gold-500/30 transition-colors duration-300">
               <div className="absolute top-4 right-5 text-4xl text-gold-500/10 font-serif leading-none select-none">"</div>
-
-              {/* Stars */}
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <Star key={s} size={13} className={s <= t.rating ? "text-gold-400 fill-gold-400" : "text-stone-700"} />
                 ))}
               </div>
-
-              {/* Text */}
               <p className="text-stone-300 text-sm leading-relaxed flex-1">"{t.text}"</p>
-
-              {/* Author */}
               <div className="flex items-center gap-3 pt-2 border-t border-stone-800">
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold-500/30 to-gold-700/20 border border-gold-500/30 flex items-center justify-center text-gold-400 text-xs font-bold shrink-0">
                   {t.avatar}
@@ -247,12 +265,71 @@ export default function ShopPage() {
           ))}
         </div>
       </div>
-      {/* ── End Testimonials ── */}
 
-      {/* ── About Section ────────────────────────────────────── */}
+      {/* ── Newsletter Signup ── */}
+      <div className="mt-20 max-w-2xl mx-auto">
+        <div className="relative rounded-2xl border border-gold-500/20 bg-gradient-to-br from-stone-900 via-stone-800/60 to-stone-900 px-8 py-12 text-center overflow-hidden">
+          {/* Background glow */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gold-500/5 to-transparent pointer-events-none" />
+
+          <div className="relative z-10">
+            <div className="w-12 h-12 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center mx-auto mb-4">
+              <Mail size={22} className="text-gold-400" />
+            </div>
+            <h2 className="text-2xl font-serif text-gold-400 mb-2">Stay Ahead of the Market</h2>
+            <p className="text-stone-400 text-sm mb-8 max-w-md mx-auto">
+              Get weekly gold market updates, price alerts, and exclusive investment insights delivered to your inbox.
+            </p>
+
+            {nlStatus === "success" ? (
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-6 py-4">
+                <p className="text-emerald-400 font-medium">🎉 You're in! Welcome to the Amira Al Dahab community.</p>
+                <p className="text-stone-500 text-xs mt-1">Check your inbox for a welcome message.</p>
+              </div>
+            ) : nlStatus === "already" ? (
+              <div className="bg-gold-500/10 border border-gold-500/20 rounded-xl px-6 py-4">
+                <p className="text-gold-400 font-medium">✓ You're already subscribed!</p>
+                <p className="text-stone-500 text-xs mt-1">You'll keep receiving our gold market updates.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    placeholder="Your name"
+                    value={nlName}
+                    onChange={(e) => setNlName(e.target.value)}
+                    className="flex-1 px-4 py-3 bg-stone-800 border border-stone-700 rounded-lg text-stone-100 text-sm placeholder-stone-500 focus:outline-none focus:border-gold-500 transition-colors"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Your email address"
+                    value={nlEmail}
+                    onChange={(e) => setNlEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && submitNewsletter()}
+                    className="flex-1 px-4 py-3 bg-stone-800 border border-stone-700 rounded-lg text-stone-100 text-sm placeholder-stone-500 focus:outline-none focus:border-gold-500 transition-colors"
+                  />
+                </div>
+                <button
+                  onClick={submitNewsletter}
+                  disabled={nlLoading || !nlName.trim() || !nlEmail.trim()}
+                  className="w-full btn-gold py-3 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {nlLoading ? "Subscribing…" : "Get Gold Market Updates"}
+                </button>
+                {nlStatus === "error" && (
+                  <p className="text-red-400 text-xs">Something went wrong. Please try again.</p>
+                )}
+                <p className="text-stone-600 text-xs">No spam, ever. Unsubscribe anytime.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {/* ── End Newsletter ── */}
+
+      {/* ── About Section ── */}
       <div className="mt-24 border-t border-stone-800 pt-20">
-
-        {/* Hero */}
         <div className="relative rounded-2xl overflow-hidden mb-14 border border-stone-800">
           <div className="bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 px-8 py-14 text-center">
             <div className="text-5xl mb-4">🏅</div>
@@ -265,8 +342,6 @@ export default function ShopPage() {
         </div>
 
         <div className="max-w-3xl mx-auto space-y-12 text-stone-300 leading-relaxed">
-
-          {/* Our Story */}
           <section>
             <h2 className="text-gold-400 font-semibold text-lg mb-3">Our Story</h2>
             <p className="mb-3">
@@ -281,7 +356,6 @@ export default function ShopPage() {
             </p>
           </section>
 
-          {/* Why Gold */}
           <section>
             <h2 className="text-gold-400 font-semibold text-lg mb-3">Why Gold?</h2>
             <p>
@@ -291,7 +365,6 @@ export default function ShopPage() {
             </p>
           </section>
 
-          {/* Why Amira Al Dahab */}
           <section>
             <h2 className="text-gold-400 font-semibold text-lg mb-4">Why Amira Al Dahab?</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -312,7 +385,6 @@ export default function ShopPage() {
             </div>
           </section>
 
-          {/* Based in Dubai */}
           <section>
             <h2 className="text-gold-400 font-semibold text-lg mb-3">Based in Dubai</h2>
             <p>
@@ -323,7 +395,6 @@ export default function ShopPage() {
             </p>
           </section>
 
-          {/* Our Commitment */}
           <section>
             <h2 className="text-gold-400 font-semibold text-lg mb-3">Our Commitment</h2>
             <p>
@@ -334,7 +405,6 @@ export default function ShopPage() {
           </section>
         </div>
 
-        {/* CTA */}
         <div className="mt-14 border border-gold-500/20 rounded-2xl p-8 text-center bg-stone-900/30 max-w-3xl mx-auto">
           <h3 className="text-xl font-serif text-gold-400 mb-2">Ready to Start Investing?</h3>
           <p className="text-stone-400 mb-5 text-sm">Browse our certified gold collection or start with a fractional investment today.</p>
@@ -343,9 +413,7 @@ export default function ShopPage() {
             <Link href="/wallet"><span className="border border-gold-500/40 text-gold-400 hover:bg-stone-800 px-6 py-2 rounded-lg cursor-pointer transition-colors">Deposit Crypto</span></Link>
           </div>
         </div>
-
       </div>
-      {/* ── End About Section ─────────────────────────────────── */}
 
     </div>
   );
