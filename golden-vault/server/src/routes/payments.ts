@@ -1,9 +1,9 @@
-// server/src/routes/payments.ts
 import express, { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, getUserId } from "../middleware/auth";
 import { createCryptoPayment, verifyIpnSignature, getPaymentStatus } from "../lib/nowpayments";
 import { buyBtcWithUsdt, getBtcPrice } from "../lib/bitget";
+import { sendDepositConfirmedEmail } from "../lib/email";
 import { z } from "zod";
 
 const supabase = createClient(
@@ -13,10 +13,6 @@ const supabase = createClient(
 
 export const paymentsRouter = Router();
 
-// ─────────────────────────────────────────────
-// POST /api/payments/create
-// Creates a NOWPayments invoice for a deposit
-// ─────────────────────────────────────────────
 const createPaymentSchema = z.object({
   amountUsd: z.number().positive().min(10),
   payCurrency: z.string().default("USDTTRC20"),
@@ -26,7 +22,6 @@ paymentsRouter.post("/create", requireAuth, async (req, res) => {
   try {
     const userId = getUserId(req);
     const { amountUsd, payCurrency } = createPaymentSchema.parse(req.body);
-
     const payment = await createCryptoPayment({ amountUsd, userId, payCurrency });
 
     await supabase.from("crypto_payments").insert({
@@ -52,9 +47,6 @@ paymentsRouter.post("/create", requireAuth, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// GET /api/payments/status/:paymentId
-// ─────────────────────────────────────────────
 paymentsRouter.get("/status/:paymentId", requireAuth, async (req, res) => {
   try {
     const { paymentId } = req.params;
@@ -65,17 +57,12 @@ paymentsRouter.get("/status/:paymentId", requireAuth, async (req, res) => {
   }
 });
 
-// ─────────────────────────────────────────────
-// POST /api/payments/webhook
-// NOWPayments IPN — fires when payment confirmed
-// ─────────────────────────────────────────────
 paymentsRouter.post(
   "/webhook",
   express.raw({ type: "application/json" }),
   async (req, res) => {
     try {
       const signature = req.headers["x-nowpayments-sig"] as string;
-
       const payload =
         Buffer.isBuffer(req.body)
           ? JSON.parse(req.body.toString())
@@ -102,7 +89,6 @@ paymentsRouter.post(
         return;
       }
 
-      // Idempotency check
       const { data: existing } = await supabase
         .from("crypto_payments")
         .select("id, btc_purchased")
@@ -116,7 +102,6 @@ paymentsRouter.post(
 
       const usdtAmount = parseFloat(price_amount);
 
-      // Auto-buy BTC on Bitget
       let btcPurchased = 0;
       let bitgetOrderId = "";
 
@@ -153,6 +138,23 @@ paymentsRouter.post(
         });
       }
 
+      // Send deposit confirmation email (best-effort)
+      try {
+        const { data: userRecord } = await supabase.auth.admin.getUserById(userId);
+        const userEmail = userRecord?.user?.email;
+        const userName = userRecord?.user?.user_metadata?.full_name || "Investor";
+        if (userEmail) {
+          await sendDepositConfirmedEmail({
+            customerEmail: userEmail,
+            customerName: userName,
+            amountUsd: usdtAmount,
+            currency: payload.pay_currency || "Crypto",
+          });
+        }
+      } catch (emailErr) {
+        console.error("Deposit email failed (payment still processed):", emailErr);
+      }
+
       res.json({ received: true, action: "processed", btcPurchased });
     } catch (err: any) {
       console.error("Webhook error:", err);
@@ -161,9 +163,6 @@ paymentsRouter.post(
   }
 );
 
-// ─────────────────────────────────────────────
-// GET /api/payments/history
-// ─────────────────────────────────────────────
 paymentsRouter.get("/history", requireAuth, async (req, res) => {
   try {
     const userId = getUserId(req);
@@ -172,7 +171,6 @@ paymentsRouter.get("/history", requireAuth, async (req, res) => {
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-
     if (error) throw error;
     res.json(data);
   } catch (err: any) {
