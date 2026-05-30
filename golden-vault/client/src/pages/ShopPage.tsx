@@ -103,6 +103,22 @@ const VIDEOS = [
     src: "https://res.cloudinary.com/dstelf8tk/video/upload/v1780156247/video_2026-05-30_16-30-47_s9uzg8.mp4",
     label: "Gold Collection — Dubai 2026",
   },
+  {
+    src: "https://res.cloudinary.com/dstelf8tk/video/upload/v1780161849/video_2026-05-30_16-30-29_mh56he.mp4",
+    label: "Luxury Jewelry — Amira Al Dahab",
+  },
+  {
+    src: "https://res.cloudinary.com/dstelf8tk/video/upload/v1780161882/video_2026-05-30_16-29-30_qdhp0p.mp4",
+    label: "18K Gold — Handcrafted in Dubai",
+  },
+  {
+    src: "https://res.cloudinary.com/dstelf8tk/video/upload/v1780161912/video_2026-05-30_16-28-01_dk5d4b.mp4",
+    label: "Premium Gold Sets — Dubai Collection",
+  },
+  {
+    src: "https://res.cloudinary.com/dstelf8tk/video/upload/v1780162066/video_2026-05-30_16-28-08_slc89g.mp4",
+    label: "Certified Gold — Amira Al Dahab",
+  },
 ];
 
 function VideoCard({ src, label }: { src: string; label: string }) {
