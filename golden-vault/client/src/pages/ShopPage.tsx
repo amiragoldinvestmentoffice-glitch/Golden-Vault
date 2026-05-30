@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { Link } from "wouter";
@@ -98,8 +98,50 @@ const TESTIMONIALS = [
   },
 ];
 
-const BRAND_VIDEO_URL = "https://res.cloudinary.com/dstelf8tk/video/upload/v1780156247/video_2026-05-30_16-30-47_s9uzg8.mp4";
+const VIDEOS = [
+  {
+    src: "https://res.cloudinary.com/dstelf8tk/video/upload/v1780156247/video_2026-05-30_16-30-47_s9uzg8.mp4",
+    label: "Gold Collection — Dubai 2026",
+  },
+];
 
+function VideoCard({ src, label }: { src: string; label: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(true);
+  const [muted, setMuted] = useState(true);
+
+  const toggle = () => {
+    if (!ref.current) return;
+    if (playing) { ref.current.pause(); } else { ref.current.play(); }
+    setPlaying(!playing);
+  };
+
+  return (
+    <div className="relative rounded-2xl overflow-hidden border border-gold-500/20 bg-stone-950">
+      <video
+        ref={ref}
+        src={src}
+        autoPlay
+        loop
+        muted={muted}
+        playsInline
+        className="w-full aspect-video object-contain bg-stone-950"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-stone-950/70 to-transparent pointer-events-none" />
+      <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+        <p className="text-gold-400 text-sm font-medium drop-shadow">{label}</p>
+        <div className="flex gap-2">
+          <button onClick={toggle} className="bg-stone-900/80 border border-stone-700 hover:border-gold-500 text-stone-300 hover:text-gold-400 text-xs px-3 py-1.5 rounded-lg transition-colors backdrop-blur-sm">
+            {playing ? "⏸ Pause" : "▶ Play"}
+          </button>
+          <button onClick={() => setMuted(!muted)} className="bg-stone-900/80 border border-stone-700 hover:border-gold-500 text-stone-300 hover:text-gold-400 text-xs px-3 py-1.5 rounded-lg transition-colors backdrop-blur-sm">
+            {muted ? "🔇 Unmute" : "🔊 Mute"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 export default function ShopPage() {
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -197,22 +239,12 @@ export default function ShopPage() {
         ))}
       </div>
 
-      {/* ── Brand Video Section ── */}
-      <div className="mb-10 rounded-2xl overflow-hidden border border-gold-500/20 relative">
-        <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent z-10 pointer-events-none" />
-        <video
-          src={BRAND_VIDEO_URL}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="w-full max-h-[480px] object-contain bg-stone-950"
-        />
-        <div className="absolute bottom-6 left-6 z-20">
-          <p className="text-gold-400 font-serif text-2xl font-bold drop-shadow-lg">Amira Al Dahab</p>
-          <p className="text-stone-300 text-sm mt-1 drop-shadow">Premium Gold — Dubai</p>
-        </div>
-      </div>
+         {/* ── Brand Video Section ── */}
+<div className={`mb-10 grid gap-4 ${VIDEOS.length === 1 ? "grid-cols-1 max-w-2xl mx-auto" : "grid-cols-1 sm:grid-cols-2"}`}>
+  {VIDEOS.map((v) => (
+    <VideoCard key={v.src} src={v.src} label={v.label} />
+  ))}
+</div>
 
       {/* ── Search & Filter ── */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
