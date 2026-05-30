@@ -19,7 +19,7 @@ export default function ContactPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <SEO title="Contact Us" description="Get in touch with Amira Al Dahab for gold investment inquiries. Email or WhatsApp our Dubai office." />
+      <SEO title="Contact Us" description="Get in touch with Amira Al Dahab for gold investment inquiries. Email or WhatsApp our Dubai office." path="/contact" />
 
       <Link href="/"><span className="text-gold-400 hover:underline cursor-pointer text-sm">← Back to Shop</span></Link>
       <h1 className="text-3xl font-serif text-gold-400 mt-4 mb-2">Contact Us</h1>
