@@ -1,5 +1,5 @@
 // server/src/routes/payments.ts
-import { Router } from "express";
+import express, { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, getUserId } from "../middleware/auth";
 import { createCryptoPayment, verifyIpnSignature, getPaymentStatus } from "../lib/nowpayments";
@@ -27,10 +27,8 @@ paymentsRouter.post("/create", requireAuth, async (req, res) => {
     const userId = getUserId(req);
     const { amountUsd, payCurrency } = createPaymentSchema.parse(req.body);
 
-    // Create payment with NOWPayments
     const payment = await createCryptoPayment({ amountUsd, userId, payCurrency });
 
-    // Store pending payment in Supabase so we can track it
     await supabase.from("crypto_payments").insert({
       user_id: userId,
       nowpayments_id: payment.payment_id,
@@ -56,7 +54,6 @@ paymentsRouter.post("/create", requireAuth, async (req, res) => {
 
 // ─────────────────────────────────────────────
 // GET /api/payments/status/:paymentId
-// Check status of a payment
 // ─────────────────────────────────────────────
 paymentsRouter.get("/status/:paymentId", requireAuth, async (req, res) => {
   try {
@@ -70,50 +67,42 @@ paymentsRouter.get("/status/:paymentId", requireAuth, async (req, res) => {
 
 // ─────────────────────────────────────────────
 // POST /api/payments/webhook
-// NOWPayments IPN webhook — fires when payment confirmed
+// NOWPayments IPN — fires when payment confirmed
 // ─────────────────────────────────────────────
 paymentsRouter.post(
   "/webhook",
-  express.raw({ type: "application/json" }), // raw body for signature check
+  express.raw({ type: "application/json" }),
   async (req, res) => {
     try {
       const signature = req.headers["x-nowpayments-sig"] as string;
 
-      // Parse body
       const payload =
-        typeof req.body === "string"
+        Buffer.isBuffer(req.body)
+          ? JSON.parse(req.body.toString())
+          : typeof req.body === "string"
           ? JSON.parse(req.body)
           : req.body;
 
-      // Verify IPN signature
       if (!verifyIpnSignature(payload, signature)) {
-        console.warn("Invalid IPN signature — possible spoofed webhook");
+        console.warn("Invalid IPN signature");
         res.status(401).json({ error: "Invalid signature" });
         return;
       }
 
-      const {
-        payment_id,
-        payment_status,
-        price_amount,   // USD amount the user was supposed to pay
-        actually_paid,  // actual crypto received
-        order_id,       // "deposit_{userId}_{timestamp}"
-      } = payload;
+      const { payment_id, payment_status, price_amount, actually_paid, order_id } = payload;
 
-      // Only process confirmed/finished payments
       if (payment_status !== "finished" && payment_status !== "confirmed") {
         res.json({ received: true, action: "none", status: payment_status });
         return;
       }
 
-      // Extract userId from order_id
       const userId = order_id?.split("_")[1];
       if (!userId) {
         res.status(400).json({ error: "Cannot extract userId from order_id" });
         return;
       }
 
-      // Check if already processed (idempotency)
+      // Idempotency check
       const { data: existing } = await supabase
         .from("crypto_payments")
         .select("id, btc_purchased")
@@ -125,10 +114,9 @@ paymentsRouter.post(
         return;
       }
 
-      // Use the actual USD value paid
       const usdtAmount = parseFloat(price_amount);
 
-      // ── AUTO-BUY BTC ON BITGET ──
+      // Auto-buy BTC on Bitget
       let btcPurchased = 0;
       let bitgetOrderId = "";
 
@@ -136,32 +124,28 @@ paymentsRouter.post(
         const result = await buyBtcWithUsdt(usdtAmount);
         btcPurchased = result.btcAmount;
         bitgetOrderId = result.orderId;
-        console.log(`✅ Bought ${btcPurchased} BTC for $${usdtAmount} — order ${bitgetOrderId}`);
+        console.log(`✅ Bought ${btcPurchased} BTC for $${usdtAmount}`);
       } catch (buyErr: any) {
         console.error("Bitget buy error:", buyErr.message);
-        // Still record payment even if buy fails — can retry manually
       }
 
-      // ── UPDATE crypto_payments TABLE ──
       await supabase
         .from("crypto_payments")
         .update({
           status: payment_status,
-          actually_paid: actually_paid,
+          actually_paid,
           btc_purchased: btcPurchased,
           bitget_order_id: bitgetOrderId,
           processed_at: new Date().toISOString(),
         })
         .eq("nowpayments_id", payment_id);
 
-      // ── ADD TO USER PORTFOLIO (investments table) ──
       if (btcPurchased > 0) {
         const btcPrice = await getBtcPrice();
-
         await supabase.from("investments").insert({
           user_id: userId,
           amount_usd: usdtAmount.toFixed(2),
-          grams_acquired: (btcPurchased * 31.1035).toFixed(6), // convert BTC → troy oz equivalent in grams if needed
+          grams_acquired: (btcPurchased * 31.1035).toFixed(6),
           spot_price_at_purchase: btcPrice.toFixed(2),
           payment_method: "crypto",
           nowpayments_id: payment_id,
@@ -179,12 +163,10 @@ paymentsRouter.post(
 
 // ─────────────────────────────────────────────
 // GET /api/payments/history
-// Get user's payment history
 // ─────────────────────────────────────────────
 paymentsRouter.get("/history", requireAuth, async (req, res) => {
   try {
     const userId = getUserId(req);
-
     const { data, error } = await supabase
       .from("crypto_payments")
       .select("*")
@@ -197,6 +179,3 @@ paymentsRouter.get("/history", requireAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-// Need express for raw body middleware in webhook
-import express from "express";
