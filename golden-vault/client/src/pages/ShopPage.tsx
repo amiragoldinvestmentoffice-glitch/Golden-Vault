@@ -34,39 +34,67 @@ const STATS = [
 
 const TESTIMONIALS = [
   {
-    name: "Chidi O.",
-    location: "Lagos, Nigeria",
-    rating: 5,
-    text: "I was skeptical at first, but after my first purchase I was hooked. The gold arrived verified and the whole process was seamless. Amira Al Dahab is the real deal.",
-    avatar: "CO",
-  },
-  {
-    name: "Fatima A.",
-    location: "Accra, Ghana",
-    rating: 5,
-    text: "Finally a platform that makes gold investing feel modern. I love that I can fund my account with crypto and track my portfolio in real time. Absolutely recommend.",
-    avatar: "FA",
-  },
-  {
-    name: "Khalid M.",
+    name: "Khalid Al-Rashid",
     location: "Riyadh, Saudi Arabia",
     rating: 5,
-    text: "The spot pricing is always fair and transparent. No surprises, no hidden fees. I've been investing for 8 months now and my portfolio has grown steadily.",
-    avatar: "KM",
+    text: "The spot pricing is always fair and transparent. No surprises, no hidden fees. I've been investing for 8 months now and my portfolio has grown steadily. Amira Al Dahab is the most trustworthy gold platform I've used.",
+    avatar: "KA",
   },
   {
-    name: "Emeka J.",
-    location: "Abuja, Nigeria",
+    name: "Fatima Al-Zahrani",
+    location: "Jeddah, Saudi Arabia",
     rating: 5,
-    text: "Customer support is outstanding. They answered all my questions within minutes via WhatsApp. The gold bar I received was exactly as described — certified 999.9 purity.",
-    avatar: "EJ",
+    text: "As a Saudi investor, gold is part of our culture. Amira Al Dahab modernizes that tradition perfectly. I love the real-time portfolio tracking and the ability to fund with crypto. Highly recommended.",
+    avatar: "FZ",
   },
   {
-    name: "Aisha B.",
-    location: "Dubai, UAE",
+    name: "James Whitfield",
+    location: "New York, USA",
     rating: 5,
-    text: "As someone living in Dubai, I know gold. Amira Al Dahab's prices are competitive and the platform is incredibly easy to use. This is how gold investing should feel.",
-    avatar: "AB",
+    text: "I've tried several gold investment platforms in the US and nothing comes close to this. The interface is clean, the pricing is live, and my gold arrived certified and verified. Genuinely impressive.",
+    avatar: "JW",
+  },
+  {
+    name: "Rachel Monroe",
+    location: "Los Angeles, USA",
+    rating: 5,
+    text: "Started with a $500 investment just to test the waters. Six months later I'm all in. The DCA feature is a game changer — I just set it and let it grow. Best financial decision I've made this year.",
+    avatar: "RM",
+  },
+  {
+    name: "Sophie Beaumont",
+    location: "Paris, France",
+    rating: 5,
+    text: "En Europe, il est rare de trouver une plateforme aussi fiable pour investir dans l'or. The English interface is flawless and the customer support responded within minutes. Très professionnel.",
+    avatar: "SB",
+  },
+  {
+    name: "Hans-Peter Müller",
+    location: "Munich, Germany",
+    rating: 5,
+    text: "Germans take gold seriously, and so does Amira Al Dahab. The purity certifications are exactly what I expect, and the live spot pricing matches the global market perfectly. Sehr gut.",
+    avatar: "HM",
+  },
+  {
+    name: "Lorenzo Esposito",
+    location: "Milan, Italy",
+    rating: 5,
+    text: "I discovered this platform through a friend in Dubai and I'm grateful every day. My portfolio is up significantly and the withdrawal process was smooth and professional. Gold investing made simple.",
+    avatar: "LE",
+  },
+  {
+    name: "Aisha Al-Mansoori",
+    location: "Abu Dhabi, UAE",
+    rating: 5,
+    text: "Living in the UAE, I have access to gold everywhere — but Amira Al Dahab gives me something the souks can't: a digital portfolio I can track anytime, anywhere. Absolutely worth it.",
+    avatar: "AM",
+  },
+  {
+    name: "David Okafor",
+    location: "London, UK",
+    rating: 5,
+    text: "The referral program alone got three of my colleagues investing. But the real reason I stay is the platform itself — reliable, transparent, and genuinely profitable. Best gold platform in the market.",
+    avatar: "DO",
   },
 ];
 
@@ -76,7 +104,6 @@ export default function ShopPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
 
-  // Newsletter state
   const [nlName, setNlName] = useState("");
   const [nlEmail, setNlEmail] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
@@ -269,9 +296,7 @@ export default function ShopPage() {
       {/* ── Newsletter Signup ── */}
       <div className="mt-20 max-w-2xl mx-auto">
         <div className="relative rounded-2xl border border-gold-500/20 bg-gradient-to-br from-stone-900 via-stone-800/60 to-stone-900 px-8 py-12 text-center overflow-hidden">
-          {/* Background glow */}
           <div className="absolute inset-0 bg-gradient-to-br from-gold-500/5 to-transparent pointer-events-none" />
-
           <div className="relative z-10">
             <div className="w-12 h-12 rounded-full bg-gold-500/15 border border-gold-500/30 flex items-center justify-center mx-auto mb-4">
               <Mail size={22} className="text-gold-400" />
@@ -326,7 +351,6 @@ export default function ShopPage() {
           </div>
         </div>
       </div>
-      {/* ── End Newsletter ── */}
 
       {/* ── About Section ── */}
       <div className="mt-24 border-t border-stone-800 pt-20">
