@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Calculator } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { Link } from "wouter";
 import SEO from "../components/SEO";
@@ -11,6 +11,9 @@ export default function InvestPage() {
   const qc = useQueryClient();
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Calculator state (separate from invest form)
+  const [calcAmount, setCalcAmount] = useState("");
 
   const { data: price } = useQuery({
     queryKey: ["price"],
@@ -31,6 +34,12 @@ export default function InvestPage() {
   const insufficientFunds = amountNum > 0 && amountNum > balance;
   const belowMinimum = amountNum > 0 && amountNum < 10;
 
+  // Calculator values
+  const calcNum = parseFloat(calcAmount) || 0;
+  const calcGrams = price ? calcNum / parseFloat(price.perGram) : 0;
+  const calcOz = calcGrams / 31.1035;
+  const calcKg = calcGrams / 1000;
+
   const handleInvest = async () => {
     if (amountNum < 10) { alert("Minimum investment is $10"); return; }
     if (insufficientFunds) { alert("Insufficient funds. Please deposit to continue."); return; }
@@ -49,14 +58,22 @@ export default function InvestPage() {
   };
 
   const presets = [100, 500, 1000, 5000, 10000];
+  const calcPresets = [50, 100, 500, 1000, 5000];
 
   if (!user) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-24 text-center">
+      <div className="max-w-2xl mx-auto px-4 py-24 text-center">
         <SEO title="Gold Investment Plans" description="Grow your wealth with gold. Explore fractional gold investment plans with Amira Al Dahab." />
         <TrendingUp size={40} className="mx-auto mb-4 text-gold-500 opacity-70" />
         <p className="text-stone-400 mb-4">Sign in to invest in gold</p>
         <Link href="/sign-in"><button className="btn-gold">Sign In</button></Link>
+
+        {/* Show calculator even when logged out */}
+        {price && (
+          <div className="mt-16 text-left">
+            <GoldCalculator price={price} calcAmount={calcAmount} setCalcAmount={setCalcAmount} calcNum={calcNum} calcGrams={calcGrams} calcOz={calcOz} calcKg={calcKg} calcPresets={calcPresets} />
+          </div>
+        )}
       </div>
     );
   }
@@ -132,6 +149,105 @@ export default function InvestPage() {
           {loading ? "Processing..." : insufficientFunds ? "Insufficient Funds — Deposit to Continue" : `Invest $${amountNum > 0 ? amountNum.toLocaleString() : "—"}`}
         </button>
       </div>
+
+      {/* ── Gold Calculator ── */}
+      {price && (
+        <GoldCalculator
+          price={price}
+          calcAmount={calcAmount}
+          setCalcAmount={setCalcAmount}
+          calcNum={calcNum}
+          calcGrams={calcGrams}
+          calcOz={calcOz}
+          calcKg={calcKg}
+          calcPresets={calcPresets}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Extracted Calculator Component ──────────────────────────
+function GoldCalculator({
+  price,
+  calcAmount,
+  setCalcAmount,
+  calcNum,
+  calcGrams,
+  calcOz,
+  calcKg,
+  calcPresets,
+}: {
+  price: { perGram: string; perOz: string };
+  calcAmount: string;
+  setCalcAmount: (v: string) => void;
+  calcNum: number;
+  calcGrams: number;
+  calcOz: number;
+  calcKg: number;
+  calcPresets: number[];
+}) {
+  return (
+    <div className="mt-8 card p-5 border-gold-500/20">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-4">
+        <Calculator size={18} className="text-gold-400" />
+        <h2 className="text-gold-400 font-semibold">Gold Calculator</h2>
+      </div>
+      <p className="text-stone-500 text-xs mb-4">How much gold can your money buy? Enter any USD amount to find out.</p>
+
+      {/* Input */}
+      <div className="relative mb-3">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400">$</span>
+        <input
+          type="number"
+          min="0"
+          value={calcAmount}
+          onChange={(e) => setCalcAmount(e.target.value)}
+          placeholder="Enter USD amount..."
+          className="w-full pl-7 pr-4 py-3 bg-stone-800 border border-stone-700 rounded-lg text-stone-100 text-lg focus:outline-none focus:border-gold-500 transition-colors"
+        />
+      </div>
+
+      {/* Preset buttons */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        {calcPresets.map((p) => (
+          <button
+            key={p}
+            onClick={() => setCalcAmount(p.toString())}
+            className="px-3 py-1 bg-stone-800 border border-stone-700 hover:border-gold-500 text-stone-400 rounded text-sm transition-colors"
+          >
+            ${p.toLocaleString()}
+          </button>
+        ))}
+      </div>
+
+      {/* Results */}
+      {calcNum > 0 ? (
+        <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-stone-800/60 rounded-xl p-4 text-center border border-stone-700">
+              <div className="text-gold-400 font-bold text-lg">{calcGrams.toFixed(3)}</div>
+              <div className="text-stone-500 text-xs mt-1">grams</div>
+            </div>
+            <div className="bg-stone-800/60 rounded-xl p-4 text-center border border-stone-700">
+              <div className="text-gold-400 font-bold text-lg">{calcOz.toFixed(4)}</div>
+              <div className="text-stone-500 text-xs mt-1">troy oz</div>
+            </div>
+            <div className="bg-stone-800/60 rounded-xl p-4 text-center border border-stone-700">
+              <div className="text-gold-400 font-bold text-lg">{calcKg.toFixed(4)}</div>
+              <div className="text-stone-500 text-xs mt-1">kilograms</div>
+            </div>
+          </div>
+          <div className="p-3 bg-gold-500/10 rounded-lg border border-gold-500/20 text-sm text-gold-300 text-center">
+            Based on live spot price of <span className="font-semibold">${parseFloat(price.perGram).toFixed(2)}/g</span>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-6 text-stone-600 text-sm">
+          Enter an amount above to see how much gold you can buy
+        </div>
+      )}
     </div>
   );
 }
