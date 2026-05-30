@@ -15,7 +15,8 @@ import { withdrawalsRouter } from "./routes/withdrawals";
 import { priceAlertsRouter, checkPriceAlerts } from "./routes/priceAlerts";
 import { referralsRouter } from "./routes/referrals";
 import { recurringRouter, runRecurringInvestments } from "./routes/recurring";
-import { newsletterRouter } from "./routes/newsletter"; // ✅ ADD THIS
+import { newsletterRouter } from "./routes/newsletter";
+import { kycRouter } from "./routes/kyc";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -41,11 +42,11 @@ app.use("/api/withdrawals", withdrawalsRouter);
 app.use("/api/price-alerts", priceAlertsRouter);
 app.use("/api/referrals", referralsRouter);
 app.use("/api/recurring", recurringRouter);
-app.use("/api/newsletter", newsletterRouter); // ✅ ADD THIS
+app.use("/api/newsletter", newsletterRouter);
+app.use("/api/kyc", kycRouter);
 
 setInterval(checkPriceAlerts, 5 * 60 * 1000);
 checkPriceAlerts();
-
 setInterval(runRecurringInvestments, 60 * 60 * 1000);
 runRecurringInvestments();
 
