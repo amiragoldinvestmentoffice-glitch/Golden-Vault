@@ -18,30 +18,19 @@ router.get("/orders", async (_req, res) => {
     .from("orders")
     .select("*")
     .order("created_at", { ascending: false });
-
-  if (error) {
-    res.status(500).json({ error: error.message });
-    return;
-  }
-
+  if (error) { res.status(500).json({ error: error.message }); return; }
   res.json(data);
 });
 
 router.get("/users", async (_req, res) => {
   const { data: { users }, error } = await supabase.auth.admin.listUsers();
-
-  if (error) {
-    res.status(500).json({ error: error.message });
-    return;
-  }
-
+  if (error) { res.status(500).json({ error: error.message }); return; }
   const mapped = users.map((u) => ({
     id: u.id,
     email: u.email ?? "",
     name: u.user_metadata?.full_name || u.user_metadata?.name || u.email || "No name",
     createdAt: u.created_at,
   }));
-
   res.json(mapped);
 });
 
@@ -52,20 +41,28 @@ const statusSchema = z.object({
 router.patch("/orders/:id", async (req, res) => {
   const orderId = parseInt(req.params.id);
   const { status } = statusSchema.parse(req.body);
-
   const { data, error } = await supabase
     .from("orders")
     .update({ status })
     .eq("id", orderId)
     .select()
     .single();
-
-  if (error || !data) {
-    res.status(404).json({ error: "Order not found" });
-    return;
-  }
-
+  if (error || !data) { res.status(404).json({ error: "Order not found" }); return; }
   res.json(data);
+});
+
+// ── GET /api/admin/withdrawals — all withdrawal requests ──────────────────
+router.get("/withdrawals", async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("withdrawal_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;
