@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Copy, Check, Loader2, RefreshCw, ChevronRight, Shield, Zap, Clock } from "lucide-react";
+import { Copy, Check, Loader2, RefreshCw, ChevronRight, Shield, Zap, Clock, History } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../lib/api";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -23,6 +25,38 @@ interface PaymentData {
   expiresAt: string;
 }
 
+interface Deposit {
+  id: number;
+  amount_usd: string;
+  pay_currency: string;
+  status: string;
+  created_at: string;
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  confirmed: "bg-green-500/10 text-green-400 border border-green-500/20",
+  finished:  "bg-green-500/10 text-green-400 border border-green-500/20",
+  waiting:   "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+  pending:   "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+  failed:    "bg-red-500/10 text-red-400 border border-red-500/20",
+  expired:   "bg-stone-700/40 text-stone-500 border border-stone-700",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  confirmed: "Confirmed",
+  finished:  "Confirmed",
+  waiting:   "Pending",
+  pending:   "Pending",
+  failed:    "Failed",
+  expired:   "Expired",
+};
+
+const CURRENCY_ICON: Record<string, string> = {
+  USDTTRC20: "₮",
+  BTC: "₿",
+  ETH: "Ξ",
+};
+
 export default function WalletPage() {
   const { user, session } = useAuth();
   const [step, setStep]               = useState<Step>("select");
@@ -35,6 +69,14 @@ export default function WalletPage() {
   const [timeLeft, setTimeLeft]       = useState<number | null>(null);
   const [pollCount, setPollCount]     = useState(0);
   const pollRef                       = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch deposit history
+  const { data: deposits = [], isLoading: depositsLoading } = useQuery<Deposit[]>({
+    queryKey: ["deposits"],
+    queryFn: () => api.get("/payments/history").then((r) => r.data),
+    enabled: !!user,
+    refetchInterval: 30_000,
+  });
 
   // Countdown timer
   useEffect(() => {
@@ -111,6 +153,12 @@ export default function WalletPage() {
 
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
+      " · " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  };
+
   if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
@@ -134,8 +182,6 @@ export default function WalletPage() {
       {/* ── STEP 1: SELECT ── */}
       {step === "select" && (
         <div className="space-y-6">
-
-          {/* Amount */}
           <div className="card p-6 border border-stone-700/60">
             <label className="block text-stone-300 text-sm font-medium mb-3">
               Deposit Amount (USD)
@@ -171,11 +217,8 @@ export default function WalletPage() {
             )}
           </div>
 
-          {/* Currency */}
           <div className="card p-6 border border-stone-700/60">
-            <label className="block text-stone-300 text-sm font-medium mb-3">
-              Pay With
-            </label>
+            <label className="block text-stone-300 text-sm font-medium mb-3">Pay With</label>
             <div className="space-y-2">
               {CURRENCIES.map(c => (
                 <button
@@ -227,7 +270,6 @@ export default function WalletPage() {
             )}
           </button>
 
-          {/* Trust signals */}
           <div className="flex items-center justify-center gap-6 text-stone-500 text-xs pt-2">
             <span className="flex items-center gap-1.5"><Shield size={12} /> Secure</span>
             <span className="flex items-center gap-1.5"><Zap size={12} /> Instant confirmation</span>
@@ -239,7 +281,6 @@ export default function WalletPage() {
       {/* ── STEP 2: PAYING ── */}
       {step === "paying" && payment && (
         <div className="space-y-5">
-          {/* Status banner */}
           <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
             <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
             <p className="text-amber-300 text-sm font-medium">Waiting for your payment…</p>
@@ -248,10 +289,7 @@ export default function WalletPage() {
             )}
           </div>
 
-          {/* Payment details card */}
           <div className="card p-6 border border-stone-700/60 space-y-5">
-
-            {/* Summary row */}
             <div className="flex items-center justify-between pb-4 border-b border-stone-700/50">
               <div>
                 <p className="text-stone-400 text-xs mb-0.5">You deposit</p>
@@ -267,7 +305,6 @@ export default function WalletPage() {
               </div>
             </div>
 
-            {/* Send exactly */}
             <div>
               <p className="text-stone-400 text-xs mb-2 font-medium uppercase tracking-wider">Send exactly</p>
               <div className="flex items-center gap-2 bg-stone-800/70 rounded-lg px-4 py-3 border border-stone-700/50">
@@ -282,7 +319,6 @@ export default function WalletPage() {
               <p className="text-amber-400/80 text-xs mt-1.5">⚠ Send the exact amount — under/over payments may delay processing</p>
             </div>
 
-            {/* To address */}
             <div>
               <p className="text-stone-400 text-xs mb-2 font-medium uppercase tracking-wider">To this address</p>
               <div className="bg-stone-800/70 rounded-lg px-4 py-3 border border-stone-700/50">
@@ -294,12 +330,10 @@ export default function WalletPage() {
               >
                 {copied === "address"
                   ? <><Check size={15} /> Address Copied!</>
-                  : <><Copy size={15} /> Copy Address</>
-                }
+                  : <><Copy size={15} /> Copy Address</>}
               </button>
             </div>
 
-            {/* Network warning */}
             <div className="bg-stone-800/40 rounded-lg px-3 py-2.5 border border-stone-700/30">
               <p className="text-stone-400 text-xs">
                 <strong className="text-stone-300">Network:</strong> {currency.network} only.
@@ -308,7 +342,6 @@ export default function WalletPage() {
             </div>
           </div>
 
-          {/* What happens next */}
           <div className="card p-5 border border-stone-700/40 bg-stone-800/20">
             <p className="text-stone-300 text-sm font-medium mb-3">What happens after you send?</p>
             <ol className="text-stone-400 text-sm space-y-1.5 list-decimal list-inside">
@@ -352,6 +385,65 @@ export default function WalletPage() {
           </div>
         </div>
       )}
+
+      {/* ── Transaction History ── */}
+      <div className="mt-14">
+        <div className="flex items-center gap-2 mb-5">
+          <History size={18} className="text-gold-400" />
+          <h2 className="text-gold-400 font-semibold">Deposit History</h2>
+        </div>
+
+        {depositsLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 rounded-xl bg-stone-900 animate-pulse border border-stone-800" />
+            ))}
+          </div>
+        ) : deposits.length === 0 ? (
+          <div className="text-center py-12 border border-stone-800 rounded-xl bg-stone-900/30">
+            <p className="text-stone-500 text-sm">No deposits yet.</p>
+            <p className="text-stone-600 text-xs mt-1">Your transaction history will appear here.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {deposits.map((d) => {
+              const status = d.status?.toLowerCase() ?? "pending";
+              const styleClass = STATUS_STYLES[status] ?? STATUS_STYLES["pending"];
+              const label = STATUS_LABEL[status] ?? "Pending";
+              const icon = CURRENCY_ICON[d.pay_currency] ?? "◈";
+              return (
+                <div
+                  key={d.id}
+                  className="flex items-center justify-between px-4 py-4 rounded-xl border border-stone-800 bg-stone-900/50 hover:border-stone-700 transition-colors"
+                >
+                  {/* Left: currency icon + date */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-stone-800 border border-stone-700 flex items-center justify-center text-sm font-bold text-gold-400 shrink-0">
+                      {icon}
+                    </div>
+                    <div>
+                      <div className="text-stone-200 text-sm font-medium">{d.pay_currency}</div>
+                      <div className="text-stone-500 text-xs mt-0.5">{formatDate(d.created_at)}</div>
+                    </div>
+                  </div>
+
+                  {/* Right: amount + status */}
+                  <div className="text-right flex flex-col items-end gap-1">
+                    <div className="text-gold-400 font-semibold text-sm">
+                      +${parseFloat(d.amount_usd).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${styleClass}`}>
+                      {label}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {/* ── End Transaction History ── */}
+
     </div>
   );
 }
