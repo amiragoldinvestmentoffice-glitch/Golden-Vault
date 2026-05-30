@@ -84,7 +84,7 @@ export default function App() {
       </Switch>
 
       <footer className="border-t border-stone-800 mt-16 py-8 text-center text-stone-500 text-sm">
-        <p className="mb-2">© 2024 Amira Al Dahab. All rights reserved.</p>
+        <p className="mb-2">© 2026 Amira Al Dahab. All rights reserved.</p>
         <div className="flex justify-center gap-4 flex-wrap">
           <a href="/about" className="hover:text-gold-400 transition-colors">About</a>
           <a href="/contact" className="hover:text-gold-400 transition-colors">Contact</a>
