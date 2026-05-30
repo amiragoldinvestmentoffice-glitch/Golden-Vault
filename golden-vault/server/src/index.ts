@@ -14,7 +14,8 @@ import { paymentsRouter } from "./routes/payments";
 import { withdrawalsRouter } from "./routes/withdrawals";
 import { priceAlertsRouter, checkPriceAlerts } from "./routes/priceAlerts";
 import { referralsRouter } from "./routes/referrals";
-import { recurringRouter, runRecurringInvestments } from "./routes/recurring"; // ✅ ADD THIS
+import { recurringRouter, runRecurringInvestments } from "./routes/recurring";
+import { newsletterRouter } from "./routes/newsletter"; // ✅ ADD THIS
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -39,12 +40,12 @@ app.use("/api/payments", paymentsRouter);
 app.use("/api/withdrawals", withdrawalsRouter);
 app.use("/api/price-alerts", priceAlertsRouter);
 app.use("/api/referrals", referralsRouter);
-app.use("/api/recurring", recurringRouter); // ✅ ADD THIS
+app.use("/api/recurring", recurringRouter);
+app.use("/api/newsletter", newsletterRouter); // ✅ ADD THIS
 
 setInterval(checkPriceAlerts, 5 * 60 * 1000);
 checkPriceAlerts();
 
-// ✅ ADD THIS — check recurring investments every hour
 setInterval(runRecurringInvestments, 60 * 60 * 1000);
 runRecurringInvestments();
 
