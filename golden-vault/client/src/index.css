@@ -1,62 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply text-stone-900;
-    background-color: #DAEEFF;
-    font-family: system-ui, -apple-system, sans-serif;
+    background-color: #0A1628;
+    color: #E8EDF5;
+    font-family: 'Montserrat', system-ui, sans-serif;
+    font-weight: 500;
   }
-  h1, h2, h3 {
-    @apply font-serif;
+  h1, h2, h3, h4 {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-weight: 700;
+    color: #F0F4FF;
+  }
+  p, span, div, label, button {
+    font-family: 'Montserrat', system-ui, sans-serif;
   }
 }
 
 @layer components {
   .btn-gold {
     @apply bg-gold-500 hover:bg-gold-400 text-stone-900 font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.03em;
   }
   .btn-outline {
-    @apply border border-gold-500 text-gold-600 hover:bg-gold-500/10 px-4 py-2 rounded-lg transition-colors;
+    @apply border border-gold-500 text-gold-400 hover:bg-gold-500/10 px-4 py-2 rounded-lg transition-colors;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
   }
   .card {
-    @apply bg-white border border-stone-200 rounded-xl shadow-sm;
+    background-color: #0F2044;
+    border: 1px solid #1E3A6E;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
   }
 }
 
-/* ── Global light theme overrides ── */
-.bg-stone-950 { background-color: #DAEEFF !important; }
-.bg-stone-900 { background-color: #EBF6FF !important; }
-.bg-stone-900\/60 { background-color: rgba(235,246,255,0.6) !important; }
-.bg-stone-900\/50 { background-color: rgba(235,246,255,0.5) !important; }
-.bg-stone-900\/40 { background-color: rgba(235,246,255,0.4) !important; }
-.bg-stone-900\/30 { background-color: rgba(235,246,255,0.3) !important; }
-.bg-stone-800 { background-color: #C8E8FF !important; }
-.bg-stone-800\/50 { background-color: rgba(200,232,255,0.5) !important; }
-.border-stone-800 { border-color: #A8D4F5 !important; }
-.border-stone-700 { border-color: #90C4EE !important; }
-.text-stone-100 { color: #1C1917 !important; }
-.text-stone-300 { color: #44403C !important; }
-.text-stone-400 { color: #78716C !important; }
-.text-stone-500 { color: #A8A29E !important; }
-.text-stone-600 { color: #57534E !important; }
-.placeholder\:text-stone-600::placeholder { color: #A8A29E !important; }
-.placeholder\:text-stone-500::placeholder { color: #A8A29E !important; }
+/* ── Navy blue background overrides ── */
+.bg-stone-950 { background-color: #0A1628 !important; }
+.bg-stone-900 { background-color: #0F2044 !important; }
+.bg-stone-900\/60 { background-color: rgba(15,32,68,0.6) !important; }
+.bg-stone-900\/50 { background-color: rgba(15,32,68,0.5) !important; }
+.bg-stone-900\/40 { background-color: rgba(15,32,68,0.4) !important; }
+.bg-stone-900\/30 { background-color: rgba(15,32,68,0.3) !important; }
+.bg-stone-800 { background-color: #162850 !important; }
+.bg-stone-800\/50 { background-color: rgba(22,40,80,0.5) !important; }
+.border-stone-800 { border-color: #1E3A6E !important; }
+.border-stone-700 { border-color: #2A4D8A !important; }
 
-/* inputs on light bg */
+/* ── Typography overrides ── */
+.text-stone-100 { color: #F0F4FF !important; }
+.text-stone-300 { color: #C8D6EE !important; }
+.text-stone-400 { color: #A0B4D0 !important; }
+.text-stone-500 { color: #7090B8 !important; }
+.text-stone-600 { color: #5078A0 !important; }
+.placeholder\:text-stone-600::placeholder { color: #5078A0 !important; }
+.placeholder\:text-stone-500::placeholder { color: #7090B8 !important; }
+.font-serif { font-family: 'Playfair Display', Georgia, serif !important; }
+.font-medium { font-weight: 600 !important; }
+
+/* ── Inputs ── */
 input, textarea, select {
-  background-color: #EBF6FF !important;
-  color: #1C1917 !important;
-  border-color: #A8D4F5 !important;
+  background-color: #162850 !important;
+  color: #F0F4FF !important;
+  border-color: #1E3A6E !important;
+  font-family: 'Montserrat', sans-serif !important;
+  font-weight: 500 !important;
 }
 input::placeholder, textarea::placeholder {
-  color: #A8A29E !important;
+  color: #7090B8 !important;
 }
 
-/* ── Jewel tone section accents ── */
+/* ── Jewel tone accents ── */
 .jewel-purple {
-  background: linear-gradient(135deg, #4C1D95, #7C3AED);
+  background: linear-gradient(135deg, #2D1B69, #6D28D9);
 }
 .jewel-emerald {
   background: linear-gradient(135deg, #064E3B, #047857);
@@ -66,4 +88,7 @@ input::placeholder, textarea::placeholder {
 }
 .jewel-gold {
   background: linear-gradient(135deg, #713f12, #eab308);
+}
+.jewel-navy {
+  background: linear-gradient(135deg, #0A1628, #1E3A6E);
 }
