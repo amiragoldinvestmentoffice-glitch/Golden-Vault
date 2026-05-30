@@ -2,6 +2,7 @@ import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { requireAuth, getUserId, getUserEmail } from "../middleware/auth";
 import { getSpotPricePerGram } from "../lib/goldPrice";
+import { sendPriceAlertEmail } from "../lib/email";
 import { z } from "zod";
 
 const supabase = createClient(
@@ -16,7 +17,6 @@ const alertSchema = z.object({
   direction: z.enum(["above", "below"]),
 });
 
-// GET /api/price-alerts — user's own alerts
 priceAlertsRouter.get("/", requireAuth, async (req, res) => {
   try {
     const userId = getUserId(req);
@@ -32,13 +32,11 @@ priceAlertsRouter.get("/", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/price-alerts — create a new alert
 priceAlertsRouter.post("/", requireAuth, async (req, res) => {
   try {
     const userId = getUserId(req);
     const email = getUserEmail(req);
     const { targetPricePerOz, direction } = alertSchema.parse(req.body);
-
     const { data, error } = await supabase
       .from("price_alerts")
       .insert({
@@ -50,7 +48,6 @@ priceAlertsRouter.post("/", requireAuth, async (req, res) => {
       })
       .select()
       .single();
-
     if (error) throw error;
     res.status(201).json(data);
   } catch (err: any) {
@@ -58,7 +55,6 @@ priceAlertsRouter.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/price-alerts/:id — delete an alert
 priceAlertsRouter.delete("/:id", requireAuth, async (req, res) => {
   try {
     const userId = getUserId(req);
@@ -74,7 +70,6 @@ priceAlertsRouter.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
-// ── Background checker (called from index.ts on an interval) ──────────────
 const OZ_PER_GRAM = 31.1035;
 
 export async function checkPriceAlerts() {
@@ -97,28 +92,31 @@ export async function checkPriceAlerts() {
 
       if (!shouldTrigger) continue;
 
-      // Mark as triggered
       await supabase
         .from("price_alerts")
         .update({ triggered: true, triggered_at: new Date().toISOString() })
         .eq("id", alert.id);
 
-      // Send email via Supabase Auth admin (basic — no external service needed)
-      if (alert.email) {
-        const direction = alert.direction === "above" ? "risen above" : "fallen below";
-        await supabase.auth.admin.generateLink({
-          type: "magiclink",
-          email: alert.email,
-        }).catch(() => {}); // best-effort; we log then continue
+      // Store in-app notification
+      await supabase.from("price_alert_notifications").insert({
+        user_id: alert.user_id,
+        alert_id: alert.id,
+        message: `Gold has ${alert.direction === "above" ? "risen above" : "fallen below"} your target of $${target.toLocaleString()}/oz. Current price: $${spotPerOz.toFixed(2)}/oz.`,
+        read: false,
+      }).catch(() => {});
 
-        // Log the trigger (Supabase doesn't send arbitrary emails natively,
-        // so we store a notification row the frontend can show)
-        await supabase.from("price_alert_notifications").insert({
-          user_id: alert.user_id,
-          alert_id: alert.id,
-          message: `Gold has ${direction} your target of $${target.toLocaleString()}/oz. Current price: $${spotPerOz.toFixed(2)}/oz.`,
-          read: false,
-        }).catch(() => {});
+      // Send real email
+      if (alert.email) {
+        try {
+          await sendPriceAlertEmail({
+            customerEmail: alert.email,
+            targetPricePerOz: target,
+            currentPricePerOz: spotPerOz,
+            direction: alert.direction,
+          });
+        } catch (emailErr) {
+          console.error("Price alert email failed:", emailErr);
+        }
       }
     }
   } catch (err) {
