@@ -4,14 +4,13 @@ import SEO from "../components/SEO";
 export default function AboutPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
-      <SEO title="About Us" description="Learn about Amira Al Dahab, Dubai's trusted gold investment office. Premium gold trading with integrity and expertise." />
+      <SEO title="About Us" description="Learn about Amira Al Dahab, Dubai's trusted gold investment office. Premium gold trading with integrity and expertise." path="/about" />
 
       <Link href="/"><span className="text-gold-400 hover:underline cursor-pointer text-sm">← Back to Shop</span></Link>
 
       <h1 className="text-3xl font-serif text-gold-400 mt-4 mb-2">About Amira Al Dahab</h1>
       <p className="text-stone-500 text-sm mb-10">Your trusted partner in gold investment</p>
 
-      {/* Hero section */}
       <div className="relative rounded-2xl overflow-hidden mb-10 border border-stone-800">
         <div className="bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 px-8 py-14 text-center">
           <div className="text-5xl mb-4">🏅</div>
@@ -23,7 +22,6 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* Story */}
       <div className="space-y-8 text-stone-300 leading-relaxed">
         <section>
           <h2 className="text-gold-400 font-semibold text-lg mb-3">Our Story</h2>
@@ -88,7 +86,6 @@ export default function AboutPage() {
         </section>
       </div>
 
-      {/* CTA */}
       <div className="mt-12 border border-gold-500/20 rounded-2xl p-8 text-center bg-stone-900/30">
         <h3 className="text-xl font-serif text-gold-400 mb-2">Ready to Start Investing?</h3>
         <p className="text-stone-400 mb-5 text-sm">Browse our certified gold collection or start with a fractional investment today.</p>
