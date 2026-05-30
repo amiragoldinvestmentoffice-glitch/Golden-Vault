@@ -14,36 +14,23 @@ ordersRouter.use(requireAuth);
 
 ordersRouter.get("/", async (req, res) => {
   const userId = getUserId(req);
-
   const { data, error } = await supabase
     .from("orders")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
-
-  if (error) {
-    res.status(500).json({ error: error.message });
-    return;
-  }
-
+  if (error) { res.status(500).json({ error: error.message }); return; }
   res.json(data);
 });
 
 ordersRouter.get("/:id", async (req, res) => {
   const userId = getUserId(req);
   const orderId = parseInt(req.params.id);
-
   const { data: order, error } = await supabase
-    .from("orders")
-    .select("*")
-    .eq("id", orderId)
-    .single();
-
+    .from("orders").select("*").eq("id", orderId).single();
   if (error || !order || order.user_id !== userId) {
-    res.status(404).json({ error: "Order not found" });
-    return;
+    res.status(404).json({ error: "Order not found" }); return;
   }
-
   res.json(order);
 });
 
@@ -60,20 +47,17 @@ ordersRouter.post("/checkout", async (req, res) => {
   const userEmail = getUserEmail(req);
   const data = checkoutSchema.parse(req.body);
 
-  // Get cart with products
   const { data: cart, error: cartError } = await supabase
     .from("cart_items")
     .select("id, quantity, products(*)")
     .eq("user_id", userId);
 
   if (cartError || !cart || cart.length === 0) {
-    res.status(400).json({ error: "Cart is empty" });
-    return;
+    res.status(400).json({ error: "Cart is empty" }); return;
   }
 
-  const total = cart.reduce((sum: number, row: any) => {
-    return sum + parseFloat(row.products.price_usd) * row.quantity;
-  }, 0);
+  const total = cart.reduce((sum: number, row: any) =>
+    sum + parseFloat(row.products.price_usd) * row.quantity, 0);
 
   const items = cart.map((row: any) => ({
     productId: row.products.id,
@@ -82,7 +66,6 @@ ordersRouter.post("/checkout", async (req, res) => {
     price: parseFloat(row.products.price_usd),
   }));
 
-  // Create order
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
@@ -104,25 +87,18 @@ ordersRouter.post("/checkout", async (req, res) => {
     .single();
 
   if (orderError || !order) {
-    res.status(500).json({ error: orderError?.message || "Failed to create order" });
-    return;
+    res.status(500).json({ error: orderError?.message || "Failed to create order" }); return;
   }
 
-  // Clear cart
   await supabase.from("cart_items").delete().eq("user_id", userId);
 
-  // Send confirmation email — never block the order response
   try {
     if (userEmail) {
       await sendOrderConfirmationEmail({
         customerEmail: userEmail,
         customerName: data.shippingName,
         orderId: order.id,
-        items: items.map((i: any) => ({
-          name: i.name,
-          quantity: i.quantity,
-          price: i.price,
-        })),
+        items,
         total,
       });
     }
