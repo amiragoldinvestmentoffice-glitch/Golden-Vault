@@ -22,7 +22,6 @@ export default function InvestPage() {
   const [loading, setLoading] = useState(false);
   const [calcAmount, setCalcAmount] = useState("");
 
-  // DCA state
   const [dcaAmount, setDcaAmount] = useState("");
   const [dcaFrequency, setDcaFrequency] = useState<"weekly" | "monthly">("monthly");
   const [dcaError, setDcaError] = useState<string | null>(null);
@@ -111,7 +110,11 @@ export default function InvestPage() {
   if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
-        <SEO title="Gold Investment Plans" description="Grow your wealth with gold. Explore fractional gold investment plans with Amira Al Dahab." />
+        <SEO
+          title="Gold Investment Plans"
+          description="Grow your wealth with gold. Explore fractional gold investment plans with Amira Al Dahab."
+          path="/invest"
+        />
         <TrendingUp size={40} className="mx-auto mb-4 text-gold-500 opacity-70" />
         <p className="text-stone-400 mb-4">Sign in to invest in gold</p>
         <Link href="/sign-in"><button className="btn-gold">Sign In</button></Link>
@@ -135,7 +138,11 @@ export default function InvestPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8">
-      <SEO title="Gold Investment Plans" description="Grow your wealth with gold. Explore fractional gold investment plans with Amira Al Dahab." />
+      <SEO
+        title="Gold Investment Plans"
+        description="Grow your wealth with gold. Explore fractional gold investment plans with Amira Al Dahab."
+        path="/invest"
+      />
 
       <h1 className="text-2xl font-serif text-gold-400 mb-2">Invest in Gold</h1>
       <p className="text-stone-400 mb-8 text-sm">Buy fractional gold by USD amount. Holdings tracked as grams at current spot price.</p>
@@ -166,7 +173,6 @@ export default function InvestPage() {
         </Link>
       </div>
 
-      {/* One-time invest form */}
       <div className="card p-5">
         <label className="block text-sm text-stone-400 mb-2">Investment Amount (USD)</label>
         <div className="relative">
@@ -217,7 +223,6 @@ export default function InvestPage() {
         </button>
       </div>
 
-      {/* Gold Calculator */}
       {price && (
         <GoldCalculator
           price={price}
@@ -231,7 +236,6 @@ export default function InvestPage() {
         />
       )}
 
-      {/* ── DCA / Recurring Investment ── */}
       <div className="mt-8 card p-5 border-gold-500/20">
         <div className="flex items-center gap-2 mb-1">
           <RefreshCw size={18} className="text-gold-400" />
@@ -241,7 +245,6 @@ export default function InvestPage() {
           Set up automatic weekly or monthly gold purchases. Funds are deducted from your wallet balance on each cycle.
         </p>
 
-        {/* Active plan display */}
         {activePlan ? (
           <div className="mb-5 p-4 rounded-xl border border-gold-500/30 bg-gold-500/5">
             <div className="flex items-center justify-between">
@@ -264,7 +267,6 @@ export default function InvestPage() {
           </div>
         ) : null}
 
-        {/* Setup form */}
         <div className="space-y-4">
           <div>
             <label className="block text-stone-400 text-sm mb-2">Amount per cycle (USD)</label>
@@ -332,13 +334,11 @@ export default function InvestPage() {
           </button>
         </div>
       </div>
-      {/* ── End DCA ── */}
 
     </div>
   );
 }
 
-// ── Gold Calculator Component ──────────────────────────────
 function GoldCalculator({
   price, calcAmount, setCalcAmount, calcNum, calcGrams, calcOz, calcKg, calcPresets,
 }: {
