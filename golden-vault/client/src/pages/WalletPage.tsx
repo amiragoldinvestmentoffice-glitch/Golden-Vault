@@ -1,76 +1,359 @@
-import { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Copy, Check, Loader2, RefreshCw, ChevronRight, Shield, Zap, Clock } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { Link } from "wouter";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+const CURRENCIES = [
+  { id: "USDTTRC20", label: "USDT", network: "TRC-20 (Tron)", icon: "₮", color: "#26A17B", popular: true },
+  { id: "USDTERC20", label: "USDT", network: "ERC-20 (Ethereum)", icon: "₮", color: "#627EEA" },
+  { id: "BTC",       label: "Bitcoin", network: "Bitcoin Network", icon: "₿", color: "#F7931A" },
+  { id: "ETH",       label: "Ethereum", network: "ERC-20", icon: "Ξ", color: "#627EEA" },
+  { id: "SOL",       label: "Solana", network: "Solana Network", icon: "◎", color: "#9945FF" },
+];
+
+const PRESET_AMOUNTS = [50, 100, 250, 500, 1000];
+
+type Step = "select" | "paying" | "confirmed";
+
+interface PaymentData {
+  paymentId: string;
+  payAddress: string;
+  payAmount: string;
+  payCurrency: string;
+  expiresAt: string;
+}
+
 export default function WalletPage() {
   const { user } = useAuth();
-  const [copied, setCopied] = useState<string | null>(null);
+  const [step, setStep]               = useState<Step>("select");
+  const [amount, setAmount]           = useState<string>("100");
+  const [currency, setCurrency]       = useState(CURRENCIES[0]);
+  const [payment, setPayment]         = useState<PaymentData | null>(null);
+  const [copied, setCopied]           = useState<"address" | "amount" | null>(null);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [timeLeft, setTimeLeft]       = useState<number | null>(null);
+  const [pollCount, setPollCount]     = useState(0);
+  const pollRef                       = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const wallets = [
-    { symbol: "BTC", name: "Bitcoin", address: "15BqtCJYF8Xfu4U75bWMyckNVP37wpJsdC", icon: "₿" },
-    { symbol: "ETH", name: "Ethereum", address: "0x9dc83740e1b00ba61203b1082a8e4a5a3b6f522", icon: "Ξ" },
-    { symbol: "SOL", name: "Solana", address: "HDTPtx1FkmVo9wyV9ijpTCXlQWS5U6zGooHj8kGmGWe", icon: "◎" },
-    { symbol: "USDT", name: "USDT (Tron)", address: "TJg6t9D4EnnhAH1ZbYkAfKlEFAW1tdx8M", icon: "₮" },
-  ];
+  // Countdown timer
+  useEffect(() => {
+    if (!payment?.expiresAt) return;
+    const interval = setInterval(() => {
+      const secs = Math.max(0, Math.floor((new Date(payment.expiresAt).getTime() - Date.now()) / 1000));
+      setTimeLeft(secs);
+      if (secs === 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [payment?.expiresAt]);
 
-  const copyAddress = (address: string, symbol: string) => {
-    navigator.clipboard.writeText(address);
-    setCopied(symbol);
+  // Poll payment status every 15s
+  useEffect(() => {
+    if (step !== "paying" || !payment) return;
+    pollRef.current = setTimeout(async function poll() {
+      try {
+        const res = await fetch(`${API_BASE}/api/payments/status/${payment.paymentId}`, {
+          headers: { Authorization: `Bearer ${(user as any)?.access_token}` },
+        });
+        const data = await res.json();
+        if (data.payment_status === "finished" || data.payment_status === "confirmed") {
+          setStep("confirmed");
+          return;
+        }
+      } catch {}
+      setPollCount(c => c + 1);
+      pollRef.current = setTimeout(poll, 15000);
+    }, 15000);
+    return () => { if (pollRef.current) clearTimeout(pollRef.current); };
+  }, [step, payment, pollCount]);
+
+  const createPayment = async () => {
+    const amt = parseFloat(amount);
+    if (!amt || amt < 10) { setError("Minimum deposit is $10"); return; }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/payments/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${(user as any)?.access_token}`,
+        },
+        body: JSON.stringify({ amountUsd: amt, payCurrency: currency.id }),
+      });
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.error || "Failed to create payment");
+      }
+      const data = await res.json();
+      setPayment(data);
+      setStep("paying");
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copy = (text: string, key: "address" | "amount") => {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
     setTimeout(() => setCopied(null), 2000);
   };
+
+  const reset = () => {
+    setStep("select");
+    setPayment(null);
+    setError(null);
+    setTimeLeft(null);
+    if (pollRef.current) clearTimeout(pollRef.current);
+  };
+
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
-        <p className="text-stone-400 mb-4">Sign in to buy store credit</p>
+        <p className="text-stone-400 mb-4">Sign in to deposit funds</p>
         <Link href="/sign-in"><button className="btn-gold">Sign In</button></Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-serif text-gold-400 mb-2">Buy Store Credit</h1>
-      <p className="text-stone-400 mb-8">Send crypto to any address below. Your balance will update automatically and can be used to purchase gold.</p>
+    <div className="max-w-2xl mx-auto px-4 py-10">
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {wallets.map((wallet) => (
-          <div key={wallet.symbol} className="card p-6 border border-gold-500/30">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl">{wallet.icon}</span>
-              <div>
-                <h2 className="font-semibold text-stone-100">{wallet.name}</h2>
-                <p className="text-stone-500 text-sm">{wallet.symbol}</p>
-              </div>
-            </div>
-            <div className="bg-stone-800/50 rounded-lg p-3 mb-3">
-              <p className="text-xs text-stone-500 mb-1">Send to this address:</p>
-              <p className="text-stone-200 text-xs font-mono break-all">{wallet.address}</p>
-            </div>
-            <button onClick={() => copyAddress(wallet.address, wallet.symbol)} className="w-full flex items-center justify-center gap-2 btn-gold py-2 text-sm">
-              {copied === wallet.symbol ? (<><Check size={16} /> Copied!</>) : (<><Copy size={16} /> Copy Address</>)}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-8 card p-6 bg-gold-500/5 border border-gold-500/20">
-        <h3 className="text-gold-400 font-semibold mb-3">How it works</h3>
-        <ol className="text-stone-300 text-sm space-y-2 list-decimal list-inside">
-          <li>Copy a wallet address above</li>
-          <li>Send crypto from your exchange (Bitget, Coinbase, etc.)</li>
-          <li>Wait 5-10 minutes for confirmation</li>
-          <li>Your store credit balance updates automatically</li>
-          <li>Use it to buy gold at checkout</li>
-        </ol>
-      </div>
-
-      <div className="mt-6 p-4 bg-stone-800/50 rounded-lg border border-stone-700">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-serif text-gold-400 mb-1">Deposit Funds</h1>
         <p className="text-stone-400 text-sm">
-          <strong>Your current balance:</strong> <span className="text-gold-400 font-semibold">$0.00</span>
+          Pay with crypto — funds are automatically converted to your portfolio
         </p>
       </div>
+
+      {/* ── STEP 1: SELECT ── */}
+      {step === "select" && (
+        <div className="space-y-6">
+
+          {/* Amount */}
+          <div className="card p-6 border border-stone-700/60">
+            <label className="block text-stone-300 text-sm font-medium mb-3">
+              Deposit Amount (USD)
+            </label>
+            <div className="flex gap-2 mb-3 flex-wrap">
+              {PRESET_AMOUNTS.map(p => (
+                <button
+                  key={p}
+                  onClick={() => setAmount(String(p))}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                    amount === String(p)
+                      ? "bg-gold-500 text-stone-900 border-gold-500"
+                      : "border-stone-600 text-stone-400 hover:border-gold-500/50 hover:text-stone-200"
+                  }`}
+                >
+                  ${p}
+                </button>
+              ))}
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-medium">$</span>
+              <input
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                min="10"
+                className="w-full bg-stone-800/70 border border-stone-600 rounded-lg pl-8 pr-4 py-3 text-stone-100 focus:outline-none focus:border-gold-500 transition-colors"
+                placeholder="Enter amount"
+              />
+            </div>
+            {parseFloat(amount) < 10 && amount !== "" && (
+              <p className="text-red-400 text-xs mt-1.5">Minimum deposit is $10</p>
+            )}
+          </div>
+
+          {/* Currency */}
+          <div className="card p-6 border border-stone-700/60">
+            <label className="block text-stone-300 text-sm font-medium mb-3">
+              Pay With
+            </label>
+            <div className="space-y-2">
+              {CURRENCIES.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setCurrency(c)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${
+                    currency.id === c.id
+                      ? "border-gold-500/70 bg-gold-500/5"
+                      : "border-stone-700/50 hover:border-stone-500"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl w-7 text-center" style={{ color: c.color }}>{c.icon}</span>
+                    <div className="text-left">
+                      <p className="text-stone-200 text-sm font-medium">{c.label}</p>
+                      <p className="text-stone-500 text-xs">{c.network}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {c.popular && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gold-500/15 text-gold-400 border border-gold-500/30">
+                        Lowest fees
+                      </span>
+                    )}
+                    <div className={`w-4 h-4 rounded-full border-2 transition-all ${
+                      currency.id === c.id ? "border-gold-500 bg-gold-500" : "border-stone-600"
+                    }`} />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            onClick={createPayment}
+            disabled={loading || !amount || parseFloat(amount) < 10}
+            className="w-full btn-gold py-3.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium"
+          >
+            {loading ? (
+              <><Loader2 size={18} className="animate-spin" /> Generating Address...</>
+            ) : (
+              <>Continue <ChevronRight size={18} /></>
+            )}
+          </button>
+
+          {/* Trust signals */}
+          <div className="flex items-center justify-center gap-6 text-stone-500 text-xs pt-2">
+            <span className="flex items-center gap-1.5"><Shield size={12} /> Secure</span>
+            <span className="flex items-center gap-1.5"><Zap size={12} /> Instant confirmation</span>
+            <span className="flex items-center gap-1.5"><Clock size={12} /> 5–20 min processing</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 2: PAYING ── */}
+      {step === "paying" && payment && (
+        <div className="space-y-5">
+          {/* Status banner */}
+          <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
+            <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+            <p className="text-amber-300 text-sm font-medium">Waiting for your payment…</p>
+            {timeLeft !== null && timeLeft > 0 && (
+              <span className="ml-auto text-amber-400/70 text-xs font-mono">{formatTime(timeLeft)}</span>
+            )}
+          </div>
+
+          {/* Payment details card */}
+          <div className="card p-6 border border-stone-700/60 space-y-5">
+
+            {/* Summary row */}
+            <div className="flex items-center justify-between pb-4 border-b border-stone-700/50">
+              <div>
+                <p className="text-stone-400 text-xs mb-0.5">You deposit</p>
+                <p className="text-gold-400 text-2xl font-semibold">${parseFloat(amount).toLocaleString()}</p>
+              </div>
+              <ChevronRight size={20} className="text-stone-600" />
+              <div className="text-right">
+                <p className="text-stone-400 text-xs mb-0.5">You send</p>
+                <p className="text-stone-100 text-xl font-semibold">
+                  {payment.payAmount} <span style={{ color: currency.color }}>{currency.label}</span>
+                </p>
+                <p className="text-stone-500 text-xs">{currency.network}</p>
+              </div>
+            </div>
+
+            {/* Send exactly */}
+            <div>
+              <p className="text-stone-400 text-xs mb-2 font-medium uppercase tracking-wider">Send exactly</p>
+              <div className="flex items-center gap-2 bg-stone-800/70 rounded-lg px-4 py-3 border border-stone-700/50">
+                <span className="text-stone-100 font-mono text-sm flex-1">{payment.payAmount} {currency.label}</span>
+                <button
+                  onClick={() => copy(payment.payAmount, "amount")}
+                  className="flex items-center gap-1 text-gold-400 hover:text-gold-300 text-xs transition-colors"
+                >
+                  {copied === "amount" ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
+                </button>
+              </div>
+              <p className="text-amber-400/80 text-xs mt-1.5">⚠ Send the exact amount — under/over payments may delay processing</p>
+            </div>
+
+            {/* To address */}
+            <div>
+              <p className="text-stone-400 text-xs mb-2 font-medium uppercase tracking-wider">To this address</p>
+              <div className="bg-stone-800/70 rounded-lg px-4 py-3 border border-stone-700/50">
+                <p className="text-stone-200 font-mono text-xs break-all leading-relaxed">{payment.payAddress}</p>
+              </div>
+              <button
+                onClick={() => copy(payment.payAddress, "address")}
+                className="mt-2 w-full flex items-center justify-center gap-2 btn-gold py-2.5 text-sm"
+              >
+                {copied === "address"
+                  ? <><Check size={15} /> Address Copied!</>
+                  : <><Copy size={15} /> Copy Address</>
+                }
+              </button>
+            </div>
+
+            {/* Network warning */}
+            <div className="bg-stone-800/40 rounded-lg px-3 py-2.5 border border-stone-700/30">
+              <p className="text-stone-400 text-xs">
+                <strong className="text-stone-300">Network:</strong> {currency.network} only.
+                Sending on the wrong network will result in lost funds.
+              </p>
+            </div>
+          </div>
+
+          {/* What happens next */}
+          <div className="card p-5 border border-stone-700/40 bg-stone-800/20">
+            <p className="text-stone-300 text-sm font-medium mb-3">What happens after you send?</p>
+            <ol className="text-stone-400 text-sm space-y-1.5 list-decimal list-inside">
+              <li>Network confirms your transaction (5–20 min)</li>
+              <li>We automatically buy BTC on your behalf</li>
+              <li>Your portfolio updates instantly</li>
+            </ol>
+          </div>
+
+          <button
+            onClick={reset}
+            className="w-full flex items-center justify-center gap-2 py-2.5 text-stone-400 hover:text-stone-200 text-sm transition-colors border border-stone-700/40 rounded-xl hover:border-stone-500"
+          >
+            <RefreshCw size={14} /> Start over
+          </button>
+        </div>
+      )}
+
+      {/* ── STEP 3: CONFIRMED ── */}
+      {step === "confirmed" && (
+        <div className="text-center space-y-6">
+          <div className="w-20 h-20 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center mx-auto">
+            <Check size={36} className="text-green-400" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-serif text-stone-100 mb-2">Payment Confirmed!</h2>
+            <p className="text-stone-400">
+              ${parseFloat(amount).toLocaleString()} has been received. BTC is being purchased and added to your portfolio.
+            </p>
+          </div>
+          <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 text-sm text-stone-400">
+            Your portfolio will reflect the new balance within a few minutes.
+          </div>
+          <div className="flex gap-3">
+            <button onClick={reset} className="flex-1 py-3 border border-stone-600 rounded-xl text-stone-300 hover:border-stone-400 transition-colors text-sm">
+              Make Another Deposit
+            </button>
+            <Link href="/portfolio" className="flex-1">
+              <button className="w-full btn-gold py-3 text-sm">View Portfolio</button>
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
