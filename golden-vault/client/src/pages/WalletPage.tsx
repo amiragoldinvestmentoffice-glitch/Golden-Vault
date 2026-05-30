@@ -24,7 +24,7 @@ interface PaymentData {
 }
 
 export default function WalletPage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [step, setStep]               = useState<Step>("select");
   const [amount, setAmount]           = useState<string>("100");
   const [currency, setCurrency]       = useState(CURRENCIES[0]);
@@ -53,7 +53,7 @@ export default function WalletPage() {
     pollRef.current = setTimeout(async function poll() {
       try {
         const res = await fetch(`${API_BASE}/api/payments/status/${payment.paymentId}`, {
-          headers: { Authorization: `Bearer ${(user as any)?.access_token}` },
+          headers: { Authorization: `Bearer ${session?.access_token}` },
         });
         const data = await res.json();
         if (data.payment_status === "finished" || data.payment_status === "confirmed") {
@@ -77,7 +77,7 @@ export default function WalletPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${(user as any)?.access_token}`,
+          Authorization: `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({ amountUsd: amt, payCurrency: currency.id }),
       });
