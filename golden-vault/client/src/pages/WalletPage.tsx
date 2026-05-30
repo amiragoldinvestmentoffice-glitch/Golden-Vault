@@ -27,8 +27,9 @@ interface PaymentData {
 
 interface Deposit {
   id: number;
-  amount_usd: string;
+  amount_usd: number;
   pay_currency: string;
+  pay_amount: string;
   status: string;
   created_at: string;
 }
@@ -59,16 +60,16 @@ const CURRENCY_ICON: Record<string, string> = {
 
 export default function WalletPage() {
   const { user, session } = useAuth();
-  const [step, setStep]               = useState<Step>("select");
-  const [amount, setAmount]           = useState<string>("100");
-  const [currency, setCurrency]       = useState(CURRENCIES[0]);
-  const [payment, setPayment]         = useState<PaymentData | null>(null);
-  const [copied, setCopied]           = useState<"address" | "amount" | null>(null);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState<string | null>(null);
-  const [timeLeft, setTimeLeft]       = useState<number | null>(null);
-  const [pollCount, setPollCount]     = useState(0);
-  const pollRef                       = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [step, setStep]           = useState<Step>("select");
+  const [amount, setAmount]       = useState<string>("100");
+  const [currency, setCurrency]   = useState(CURRENCIES[0]);
+  const [payment, setPayment]     = useState<PaymentData | null>(null);
+  const [copied, setCopied]       = useState<"address" | "amount" | null>(null);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState<string | null>(null);
+  const [timeLeft, setTimeLeft]   = useState<number | null>(null);
+  const [pollCount, setPollCount] = useState(0);
+  const pollRef                   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch deposit history
   const { data: deposits = [], isLoading: depositsLoading } = useQuery<Deposit[]>({
@@ -416,7 +417,6 @@ export default function WalletPage() {
                   key={d.id}
                   className="flex items-center justify-between px-4 py-4 rounded-xl border border-stone-800 bg-stone-900/50 hover:border-stone-700 transition-colors"
                 >
-                  {/* Left: currency icon + date */}
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-stone-800 border border-stone-700 flex items-center justify-center text-sm font-bold text-gold-400 shrink-0">
                       {icon}
@@ -426,11 +426,9 @@ export default function WalletPage() {
                       <div className="text-stone-500 text-xs mt-0.5">{formatDate(d.created_at)}</div>
                     </div>
                   </div>
-
-                  {/* Right: amount + status */}
                   <div className="text-right flex flex-col items-end gap-1">
                     <div className="text-gold-400 font-semibold text-sm">
-                      +${parseFloat(d.amount_usd).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      +${Number(d.amount_usd).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${styleClass}`}>
                       {label}
