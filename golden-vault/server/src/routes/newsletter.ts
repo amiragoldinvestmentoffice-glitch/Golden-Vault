@@ -19,7 +19,6 @@ newsletterRouter.post("/subscribe", async (req, res) => {
   try {
     const { name, email } = subscribeSchema.parse(req.body);
 
-    // Check if already subscribed
     const { data: existing } = await supabase
       .from("newsletter_subscribers")
       .select("id, active")
@@ -31,7 +30,6 @@ newsletterRouter.post("/subscribe", async (req, res) => {
         res.status(200).json({ message: "already_subscribed" });
         return;
       }
-      // Re-activate if they previously unsubscribed
       await supabase
         .from("newsletter_subscribers")
         .update({ active: true, name })
@@ -51,6 +49,20 @@ newsletterRouter.post("/subscribe", async (req, res) => {
       res.status(400).json({ error: "Please enter a valid name and email" });
       return;
     }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/newsletter/subscribers — admin: list all subscribers
+newsletterRouter.get("/subscribers", async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("newsletter_subscribers")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    res.json(data);
+  } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
