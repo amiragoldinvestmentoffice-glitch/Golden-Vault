@@ -7,27 +7,139 @@ const supabase = createClient(
 );
 
 const seedProducts = [
-  { name: "1oz Gold Bar – PAMP Suisse", description: "Iconic PAMP Suisse Lady Fortuna 1 troy oz gold bar. Finest Swiss craftsmanship with assay certificate.", price_usd: "3345.00", weight_grams: "31.103", purity: "999.9", category: "bar", in_stock: true, image_url: "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=400" },
-  { name: "100g Gold Bar – Valcambi", description: "Valcambi 100 gram gold bar with unique serial number and assay card. Investment-grade purity.", price_usd: "10850.00", weight_grams: "100.000", purity: "999.9", category: "bar", in_stock: true, image_url: "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=400" },
-  { name: "10oz Gold Bar – Credit Suisse", description: "Credit Suisse 10 troy oz gold bar. Secure, liquid and universally recognized.", price_usd: "33450.00", weight_grams: "311.035", purity: "999.9", category: "bar", in_stock: true, image_url: "https://images.unsplash.com/photo-1610375461246-83df859d849d?w=400" },
-  { name: "American Gold Eagle 1oz Coin", description: "Official U.S. Mint gold bullion coin. Legal tender, 91.67% gold with copper and silver alloy for durability.", price_usd: "3420.00", weight_grams: "33.931", purity: "916.7", category: "coin", in_stock: true, image_url: "https://images.unsplash.com/photo-1621870410898-bf20fc02aa3d?w=400" },
-  { name: "Canadian Maple Leaf 1oz Coin", description: "Royal Canadian Mint flagship coin. World-renowned for its iconic maple leaf design and 24-karat purity.", price_usd: "3380.00", weight_grams: "31.103", purity: "999.9", category: "coin", in_stock: true, image_url: "https://images.unsplash.com/photo-1621870410898-bf20fc02aa3d?w=400" },
-  { name: "South African Krugerrand 1oz", description: "The original gold bullion coin (1967). Contains exactly 1 troy oz of gold in 22-karat alloy.", price_usd: "3360.00", weight_grams: "33.930", purity: "916.6", category: "coin", in_stock: true, image_url: "https://images.unsplash.com/photo-1621870410898-bf20fc02aa3d?w=400" },
-  { name: "Australian Kangaroo 1oz Coin", description: "Perth Mint annual release featuring the iconic kangaroo. New design each year makes it a collector's favorite.", price_usd: "3395.00", weight_grams: "31.103", purity: "999.9", category: "coin", in_stock: true, image_url: "https://images.unsplash.com/photo-1621870410898-bf20fc02aa3d?w=400" },
-  { name: "22K Gold Rope Chain Necklace", description: "Hand-crafted 22-karat gold rope chain, 18 inches. Timeless design with a secure lobster clasp.", price_usd: "1850.00", weight_grams: "12.500", purity: "916", category: "jewelry", in_stock: true, image_url: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400" },
-  { name: "18K Gold Diamond Solitaire Ring", description: "Elegant 18-karat gold solitaire ring set with a 0.25ct VS1 diamond. Perfect as an investment piece.", price_usd: "2750.00", weight_grams: "4.200", purity: "750", category: "jewelry", in_stock: true, image_url: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400" },
-  { name: "24K Gold Bangle Bracelet", description: "Pure 24-karat gold bangle, handcrafted in the traditional style. 20 grams of investment-grade gold.", price_usd: "2180.00", weight_grams: "20.000", purity: "999.9", category: "jewelry", in_stock: true, image_url: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400" },
+  {
+    name: "Gold Charm Bracelets — Dubai Collection",
+    description: "Delicate 18K gold chain bracelets with assorted charms — evil eye, stars, infinity, and more. Handcrafted in Dubai.",
+    price_usd: "380.00",
+    weight_grams: "3.5",
+    purity: "750",
+    category: "jewelry",
+    in_stock: true,
+    image_url: "https://i.imgur.com/dfaNHce.jpeg",
+  },
+  {
+    name: "Cuban Link Gold Chain & Bracelet Set",
+    description: "Bold 18K gold Cuban link necklace and matching bracelet set. Heavy-gauge links with signature clasp detail.",
+    price_usd: "2800.00",
+    weight_grams: "28.0",
+    purity: "750",
+    category: "jewelry",
+    in_stock: true,
+    image_url: "https://i.imgur.com/3r6Rd1N.jpeg",
+  },
+  {
+    name: "18K Cuban Link Set — Diamond Cut Detail",
+    description: "Premium 18K gold Cuban link necklace and bracelet with pavé-set diamond-cut centerpiece. Certified 750 purity.",
+    price_usd: "3200.00",
+    weight_grams: "32.0",
+    purity: "750",
+    category: "jewelry",
+    in_stock: true,
+    image_url: "https://i.imgur.com/vlbOQCN.jpeg",
+  },
+  {
+    name: "Lion Medallion Gold Set — Necklace, Bracelet & Ring",
+    description: "Statement 18K gold set featuring a bold lion head medallion with pavé stones on black enamel. Includes necklace, bracelet, and matching ring.",
+    price_usd: "4200.00",
+    weight_grams: "42.0",
+    purity: "750",
+    category: "jewelry",
+    in_stock: true,
+    image_url: "https://i.imgur.com/gK8G3aD.jpeg",
+  },
+  {
+    name: "Medusa Medallion Gold Set — 66.28g",
+    description: "Spectacular 18K gold Medusa head medallion set, 66.28 grams. Includes large pendant necklace, bracelet, and ring with full pavé stone setting.",
+    price_usd: "8900.00",
+    weight_grams: "66.28",
+    purity: "750",
+    category: "jewelry",
+    in_stock: true,
+    image_url: "https://i.imgur.com/dfgddKU.jpeg",
+  },
+  {
+    name: "18K Gold Statement Rings — Luxury Collection",
+    description: "Bold 18K gold statement rings in various designs. Each ring is handcrafted with high-polish finish. Sold individually — contact us to select your design.",
+    price_usd: "950.00",
+    weight_grams: "9.0",
+    purity: "750",
+    category: "jewelry",
+    in_stock: true,
+    image_url: "https://i.imgur.com/iqupM2M.jpeg",
+  },
+  {
+    name: "Gold Cat & Heart Ring Set",
+    description: "Playful 18K gold cat figurine ring and chunky heart ring. A perfect gift pairing, sold as a set.",
+    price_usd: "1200.00",
+    weight_grams: "11.0",
+    purity: "750",
+    category: "jewelry",
+    in_stock: true,
+    image_url: "https://i.imgur.com/0nceCH6.jpeg",
+  },
+  {
+    name: "Gold Crown Charm Necklace",
+    description: "Elegant 18K gold chain necklace with cascading crown charms. Lightweight and delicate — perfect for everyday wear.",
+    price_usd: "520.00",
+    weight_grams: "5.0",
+    purity: "750",
+    category: "jewelry",
+    in_stock: true,
+    image_url: "https://i.imgur.com/S7riK50.jpeg",
+  },
+  {
+    name: "Ottoman Hand Chain — Gold Coin Bracelet",
+    description: "Traditional Ottoman-style 18K gold hand chain with circular medallion and dangling coin drops. A statement piece rooted in Arab heritage.",
+    price_usd: "1800.00",
+    weight_grams: "18.0",
+    purity: "750",
+    category: "jewelry",
+    in_stock: true,
+    image_url: "https://i.imgur.com/qD8rRPP.jpeg",
+  },
+  {
+    name: "1kg Investment Gold Bar — Amira Aldahab Certified",
+    description: "1 kilogram of 999.9 Fine Gold. Investment-grade bar certified by Amira Aldahab Precious Metals. Serial No. AA01357. Comes with Gold Ownership Certificate.",
+    price_usd: "95000.00",
+    weight_grams: "1000.0",
+    purity: "999.9",
+    category: "bar",
+    in_stock: true,
+    image_url: "https://i.imgur.com/9tCXK2A.jpeg",
+  },
 ];
 
 async function seed() {
-  console.log("🌱 Seeding database...");
-  await supabase.from("products").delete().neq("id", 0);
+  console.log("🌱 Checking database...");
+
+  // ── GUARD: only seed if the products table is empty ──────────────────────
+  // This prevents wiping real products on every deploy.
+  const { data: existing, error: checkError } = await supabase
+    .from("products")
+    .select("id")
+    .limit(1);
+
+  if (checkError) {
+    console.error("Error checking products table:", checkError);
+    process.exit(1);
+  }
+
+  if (existing && existing.length > 0) {
+    console.log("✅ Products already exist — skipping seed. No changes made.");
+    process.exit(0);
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
+  console.log("📦 Table is empty — inserting real products...");
+
   const { error } = await supabase.from("products").insert(seedProducts);
+
   if (error) {
     console.error("Seed error:", error);
     process.exit(1);
   }
-  console.log(`✅ Seeded ${seedProducts.length} products`);
+
+  console.log(`✅ Seeded ${seedProducts.length} products successfully`);
   process.exit(0);
 }
 
