@@ -7,10 +7,8 @@ const API_BASE = import.meta.env.VITE_API_URL || "";
 
 const CURRENCIES = [
   { id: "USDTTRC20", label: "USDT", network: "TRC-20 (Tron)", icon: "₮", color: "#26A17B", popular: true },
-  { id: "USDTERC20", label: "USDT", network: "ERC-20 (Ethereum)", icon: "₮", color: "#627EEA" },
   { id: "BTC",       label: "Bitcoin", network: "Bitcoin Network", icon: "₿", color: "#F7931A" },
   { id: "ETH",       label: "Ethereum", network: "ERC-20", icon: "Ξ", color: "#627EEA" },
-  { id: "SOL",       label: "Solana", network: "Solana Network", icon: "◎", color: "#9945FF" },
 ];
 
 const PRESET_AMOUNTS = [50, 100, 250, 500, 1000];
