@@ -61,9 +61,49 @@ interface AccountDrawerProps {
   isDark: boolean;
 }
 
+// Inject styles once
+const STYLE_ID = "amira-drawer-styles";
+function injectDrawerStyles() {
+  if (document.getElementById(STYLE_ID)) return;
+  const el = document.createElement("style");
+  el.id = STYLE_ID;
+  el.textContent = `
+    .amira-upload-label {
+      display: block;
+      cursor: pointer;
+    }
+    .amira-upload-label input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+    }
+    .amira-upload-box {
+      border-radius: 12px;
+      height: 110px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+      position: relative;
+    }
+    .amira-upload-box:hover {
+      border-style: solid !important;
+    }
+  `;
+  document.head.appendChild(el);
+}
+
 export default function AccountDrawer({ isOpen, onClose, user, isDark }: AccountDrawerProps) {
   const C = isDark ? DARK : LIGHT;
   const [tab, setTab] = useState<"profile" | "kyc">("profile");
+
+  useEffect(() => { injectDrawerStyles(); }, []);
 
   // Profile state
   const [profile, setProfile] = useState<ProfileData>({
@@ -89,11 +129,6 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
   const [kycSubmitting, setKycSubmitting] = useState(false);
   const [kycStatus, setKycStatus] = useState<"idle" | "success" | "error">("idle");
 
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  const frontInputRef = useRef<HTMLInputElement>(null);
-  const backInputRef = useRef<HTMLInputElement>(null);
-  const selfieInputRef = useRef<HTMLInputElement>(null);
-
   // Load profile & KYC on open
   useEffect(() => {
     if (!isOpen || !user) return;
@@ -110,7 +145,6 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
         if (d.avatar_url) setAvatarPreview(d.avatar_url);
       })
       .catch(() => {});
-
     api.get("/user/kyc")
       .then((r) => setKyc(r.data))
       .catch(() => {});
@@ -122,6 +156,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
+  // ── File helpers ────────────────────────────────────────────────────────────
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -144,11 +179,11 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
     reader.readAsDataURL(file);
   };
 
+  // ── Actions ─────────────────────────────────────────────────────────────────
   const saveProfile = async () => {
     setSaving(true);
     setSaveStatus("idle");
     try {
-      // Upload avatar first if changed
       let avatarUrl = profile.avatar_url;
       if (avatarFile) {
         const formData = new FormData();
@@ -191,7 +226,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
     }
   };
 
-  // ── Shared style helpers ─────────────────────────────────────────────────
+  // ── Style helpers ────────────────────────────────────────────────────────────
   const fieldLabel = (text: string) => (
     <label
       style={{
@@ -199,7 +234,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
         fontSize: 11,
         fontWeight: 600,
         color: C.textMuted,
-        textTransform: "uppercase",
+        textTransform: "uppercase" as const,
         letterSpacing: "0.1em",
         marginBottom: 6,
         fontFamily: "'DM Sans', sans-serif",
@@ -252,63 +287,77 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
 
   const kycStatusInfo = kycStatusConfig[kyc.status];
 
-  // ── Upload box ────────────────────────────────────────────────────────────
+  // ── Upload Box — uses <label> wrapping <input> so click always works ─────────
   const UploadBox = ({
     label,
     preview,
-    inputRef,
     onChange,
     required,
+    uid,
   }: {
     label: string;
     preview: string;
-    inputRef: React.RefObject<HTMLInputElement>;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     required?: boolean;
+    uid: string; // unique id for label↔input linkage
   }) => (
     <div>
       {fieldLabel(label + (required ? " *" : ""))}
-      <div
-        onClick={() => inputRef.current?.click()}
+      <label
+        htmlFor={uid}
         style={{
-          border: `2px dashed ${preview ? C.gold : C.border}`,
+          display: "block",
+          cursor: "pointer",
           borderRadius: 12,
           height: 110,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          overflow: "hidden",
+          border: `2px dashed ${preview ? C.gold : C.border}`,
           background: preview ? "transparent" : C.inputBg,
-          transition: "border-color 0.2s ease",
+          overflow: "hidden",
           position: "relative",
+          transition: "border-color 0.2s ease",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.gold)}
-        onMouseLeave={(e) => (e.currentTarget.style.borderColor = preview ? C.gold : C.border)}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLLabelElement).style.borderColor = C.gold)}
+        onMouseLeave={(e) =>
+          ((e.currentTarget as HTMLLabelElement).style.borderColor = preview ? C.gold : C.border)
+        }
       >
         {preview ? (
-          <img
-            src={preview}
-            alt={label}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
+          <img src={preview} alt={label} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
         ) : (
-          <>
-            <Upload size={20} style={{ color: C.textMuted, marginBottom: 6 }} />
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            <Upload size={20} style={{ color: C.textMuted }} />
             <span style={{ color: C.textMuted, fontSize: 12, fontFamily: "'DM Sans', sans-serif" }}>
               Click to upload
             </span>
-          </>
+          </div>
         )}
-      </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*,.pdf"
-        style={{ display: "none" }}
-        onChange={onChange}
-      />
+        {/* Hidden but real input — tied to label via id */}
+        <input
+          id={uid}
+          type="file"
+          accept="image/*,.pdf"
+          style={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            opacity: 0,
+            overflow: "hidden",
+            clip: "rect(0,0,0,0)",
+            whiteSpace: "nowrap",
+          }}
+          onChange={onChange}
+        />
+      </label>
     </div>
   );
 
@@ -357,14 +406,11 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
             top: 0,
             background: C.drawerBg,
             zIndex: 10,
-            paddingBottom: 0,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
-              <p style={{ color: C.textMuted, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", margin: 0, marginBottom: 4 }}>
-                My Account
-              </p>
+              <p style={{ color: C.textMuted, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", margin: 0, marginBottom: 4 }}>My Account</p>
               <h2
                 style={{
                   fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -383,17 +429,10 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
             <button
               onClick={onClose}
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: C.cardBg,
-                border: `1px solid ${C.border}`,
-                color: C.textSub,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
+                width: 38, height: 38, borderRadius: "50%",
+                background: C.cardBg, border: `1px solid ${C.border}`,
+                color: C.textSub, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
               }}
             >
               <X size={16} />
@@ -401,7 +440,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
           </div>
 
           {/* Tabs */}
-          <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: "flex", borderBottom: `1px solid ${C.border}` }}>
             {(["profile", "kyc"] as const).map((t) => (
               <button
                 key={t}
@@ -435,58 +474,48 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
           {tab === "profile" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
 
-              {/* Avatar */}
+              {/* Avatar — also uses label-based upload */}
               <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <div
-                    style={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: "50%",
-                      border: `2px solid ${C.gold}60`,
-                      overflow: "hidden",
-                      background: isDark ? "#0F1420" : "#F5EDD8",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      boxShadow: `0 0 24px ${C.goldGlow}`,
-                    }}
-                  >
-                    {avatarPreview ? (
-                      <img
-                        src={avatarPreview}
-                        alt="Avatar"
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                    ) : (
-                      <User size={30} style={{ color: C.textMuted }} />
-                    )}
-                  </div>
-                  <button
-                    onClick={() => avatarInputRef.current?.click()}
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      right: 0,
-                      width: 26,
-                      height: 26,
-                      borderRadius: "50%",
-                      background: C.gold,
-                      border: `2px solid ${C.drawerBg}`,
-                      color: C.btnTextColor,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Camera size={12} />
-                  </button>
+                  <label htmlFor="avatar-upload" style={{ cursor: "pointer", display: "block" }}>
+                    <div
+                      style={{
+                        width: 80, height: 80, borderRadius: "50%",
+                        border: `2px solid ${C.gold}60`,
+                        overflow: "hidden",
+                        background: isDark ? "#0F1420" : "#F5EDD8",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: `0 0 24px ${C.goldGlow}`,
+                      }}
+                    >
+                      {avatarPreview ? (
+                        <img src={avatarPreview} alt="Avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <User size={30} style={{ color: C.textMuted }} />
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        position: "absolute", bottom: 0, right: 0,
+                        width: 26, height: 26, borderRadius: "50%",
+                        background: C.gold, border: `2px solid ${C.drawerBg}`,
+                        color: C.btnTextColor,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      <Camera size={12} />
+                    </div>
+                  </label>
                   <input
-                    ref={avatarInputRef}
+                    id="avatar-upload"
                     type="file"
                     accept="image/*"
-                    style={{ display: "none" }}
+                    style={{
+                      position: "absolute", width: 1, height: 1,
+                      opacity: 0, overflow: "hidden",
+                      clip: "rect(0,0,0,0)", whiteSpace: "nowrap",
+                    }}
                     onChange={handleAvatarChange}
                   />
                 </div>
@@ -497,29 +526,21 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                   <p style={{ color: C.textMuted, fontSize: 12, margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
                     JPG, PNG or GIF — max 5MB
                   </p>
-                  <button
-                    onClick={() => avatarInputRef.current?.click()}
+                  <label
+                    htmlFor="avatar-upload"
                     style={{
-                      marginTop: 8,
-                      padding: "5px 14px",
-                      borderRadius: 8,
-                      background: "transparent",
-                      border: `1px solid ${C.border}`,
-                      color: C.gold,
-                      fontSize: 12,
-                      cursor: "pointer",
+                      display: "inline-block", marginTop: 8,
+                      padding: "5px 14px", borderRadius: 8,
+                      background: "transparent", border: `1px solid ${C.border}`,
+                      color: C.gold, fontSize: 12, cursor: "pointer",
                       fontFamily: "'DM Sans', sans-serif",
-                      transition: "border-color 0.2s ease",
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.gold)}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = C.border)}
                   >
                     Upload Photo
-                  </button>
+                  </label>
                 </div>
               </div>
 
-              {/* Divider */}
               <hr style={{ border: "none", borderTop: `1px solid ${C.border}`, margin: 0 }} />
 
               {/* Full name */}
@@ -528,10 +549,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                   <User size={13} style={{ color: C.textMuted }} />
                   {fieldLabel("Full Name")}
                 </div>
-                <input
-                  type="text"
-                  placeholder="e.g. Amira Al Dahab"
-                  value={profile.full_name}
+                <input type="text" placeholder="e.g. Amira Al Dahab" value={profile.full_name}
                   onChange={(e) => setProfile((p) => ({ ...p, full_name: e.target.value }))}
                   style={inputStyle}
                   onFocus={(e) => (e.target.style.borderColor = C.gold)}
@@ -545,10 +563,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                   <Mail size={13} style={{ color: C.textMuted }} />
                   {fieldLabel("Email Address")}
                 </div>
-                <input
-                  type="email"
-                  value={user?.email || ""}
-                  readOnly
+                <input type="email" value={user?.email || ""} readOnly
                   style={{ ...inputStyle, opacity: 0.5, cursor: "not-allowed" }}
                 />
               </div>
@@ -559,10 +574,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                   <Phone size={13} style={{ color: C.textMuted }} />
                   {fieldLabel("Phone Number")}
                 </div>
-                <input
-                  type="tel"
-                  placeholder="+971 50 000 0000"
-                  value={profile.phone}
+                <input type="tel" placeholder="+971 50 000 0000" value={profile.phone}
                   onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
                   style={inputStyle}
                   onFocus={(e) => (e.target.style.borderColor = C.gold)}
@@ -576,10 +588,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                   <MapPin size={13} style={{ color: C.textMuted }} />
                   {fieldLabel("Location")}
                 </div>
-                <input
-                  type="text"
-                  placeholder="e.g. Dubai, UAE"
-                  value={profile.location}
+                <input type="text" placeholder="e.g. Dubai, UAE" value={profile.location}
                   onChange={(e) => setProfile((p) => ({ ...p, location: e.target.value }))}
                   style={inputStyle}
                   onFocus={(e) => (e.target.style.borderColor = C.gold)}
@@ -593,10 +602,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                   <Briefcase size={13} style={{ color: C.textMuted }} />
                   {fieldLabel("Occupation")}
                 </div>
-                <input
-                  type="text"
-                  placeholder="e.g. Business Owner, Investor"
-                  value={profile.job}
+                <input type="text" placeholder="e.g. Business Owner, Investor" value={profile.job}
                   onChange={(e) => setProfile((p) => ({ ...p, job: e.target.value }))}
                   style={inputStyle}
                   onFocus={(e) => (e.target.style.borderColor = C.gold)}
@@ -609,19 +615,12 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                 onClick={saveProfile}
                 disabled={saving}
                 style={{
-                  width: "100%",
-                  padding: "13px",
-                  borderRadius: 11,
-                  background: C.gold,
-                  color: C.btnTextColor,
-                  border: "none",
-                  fontSize: 14,
-                  fontWeight: 600,
+                  width: "100%", padding: "13px", borderRadius: 11,
+                  background: C.gold, color: C.btnTextColor,
+                  border: "none", fontSize: 14, fontWeight: 600,
                   cursor: saving ? "not-allowed" : "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                  letterSpacing: "0.05em",
-                  opacity: saving ? 0.6 : 1,
-                  transition: "opacity 0.2s ease, transform 0.1s ease",
+                  fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.05em",
+                  opacity: saving ? 0.6 : 1, transition: "opacity 0.2s ease, transform 0.1s ease",
                   marginTop: 4,
                 }}
                 onMouseEnter={(e) => !saving && (e.currentTarget.style.transform = "translateY(-1px)")}
@@ -631,27 +630,13 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
               </button>
 
               {saveStatus === "success" && (
-                <div
-                  style={{
-                    background: "rgba(16,185,129,0.08)",
-                    border: "1px solid rgba(16,185,129,0.25)",
-                    borderRadius: 10,
-                    padding: "12px 16px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
+                <div style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>
                   <CheckCircle size={15} style={{ color: "#10B981", flexShrink: 0 }} />
-                  <span style={{ color: "#10B981", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
-                    Profile saved successfully!
-                  </span>
+                  <span style={{ color: "#10B981", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>Profile saved successfully!</span>
                 </div>
               )}
               {saveStatus === "error" && (
-                <p style={{ color: "#F87171", fontSize: 12, fontFamily: "'DM Sans', sans-serif", margin: 0 }}>
-                  Failed to save. Please try again.
-                </p>
+                <p style={{ color: "#F87171", fontSize: 12, fontFamily: "'DM Sans', sans-serif", margin: 0 }}>Failed to save. Please try again.</p>
               )}
             </div>
           )}
@@ -661,74 +646,24 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
             <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
 
               {/* Status badge */}
-              <div
-                style={{
-                  background: kycStatusInfo.bg,
-                  border: `1px solid ${kycStatusInfo.color}30`,
-                  borderRadius: 14,
-                  padding: "16px 20px",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 12,
-                }}
-              >
-                <div style={{ color: kycStatusInfo.color, flexShrink: 0, marginTop: 1 }}>
-                  {kycStatusInfo.icon}
-                </div>
+              <div style={{ background: kycStatusInfo.bg, border: `1px solid ${kycStatusInfo.color}30`, borderRadius: 14, padding: "16px 20px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <div style={{ color: kycStatusInfo.color, flexShrink: 0, marginTop: 1 }}>{kycStatusInfo.icon}</div>
                 <div>
-                  <p
-                    style={{
-                      color: kycStatusInfo.color,
-                      fontWeight: 600,
-                      fontSize: 14,
-                      margin: "0 0 4px",
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  >
+                  <p style={{ color: kycStatusInfo.color, fontWeight: 600, fontSize: 14, margin: "0 0 4px", fontFamily: "'DM Sans', sans-serif" }}>
                     {kycStatusInfo.label}
                   </p>
-                  {kyc.status === "not_submitted" && (
-                    <p style={{ color: C.textMuted, fontSize: 12, margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-                      Complete KYC verification to unlock higher investment limits and full account access.
-                    </p>
-                  )}
-                  {kyc.status === "pending" && (
-                    <p style={{ color: C.textMuted, fontSize: 12, margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-                      Your documents are being reviewed. This typically takes 1–2 business days.
-                    </p>
-                  )}
-                  {kyc.status === "verified" && (
-                    <p style={{ color: C.textMuted, fontSize: 12, margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-                      Your identity is verified. You have full access to all investment features.
-                    </p>
-                  )}
-                  {kyc.status === "rejected" && kyc.rejection_reason && (
-                    <p style={{ color: C.textMuted, fontSize: 12, margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-                      Reason: {kyc.rejection_reason}
-                    </p>
-                  )}
+                  {kyc.status === "not_submitted" && <p style={{ color: C.textMuted, fontSize: 12, margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>Complete KYC to unlock higher investment limits and full account access.</p>}
+                  {kyc.status === "pending" && <p style={{ color: C.textMuted, fontSize: 12, margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>Your documents are being reviewed. This typically takes 1–2 business days.</p>}
+                  {kyc.status === "verified" && <p style={{ color: C.textMuted, fontSize: 12, margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>Your identity is verified. You have full access to all investment features.</p>}
+                  {kyc.status === "rejected" && kyc.rejection_reason && <p style={{ color: C.textMuted, fontSize: 12, margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>Reason: {kyc.rejection_reason}</p>}
                 </div>
               </div>
 
-              {/* What you unlock */}
+              {/* Benefits */}
               {kyc.status !== "verified" && (
-                <div
-                  style={{
-                    background: C.cardBg,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 12,
-                    padding: "16px 18px",
-                  }}
-                >
-                  <p style={{ color: C.gold, fontSize: 12, fontWeight: 600, margin: "0 0 10px", letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "'DM Sans', sans-serif" }}>
-                    Benefits of Verification
-                  </p>
-                  {[
-                    "Higher investment limits (up to $500,000)",
-                    "Expedited withdrawals",
-                    "Access to exclusive gold offerings",
-                    "Verified badge on your profile",
-                  ].map((b) => (
+                <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px" }}>
+                  <p style={{ color: C.gold, fontSize: 12, fontWeight: 600, margin: "0 0 10px", letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "'DM Sans', sans-serif" }}>Benefits of Verification</p>
+                  {["Higher investment limits (up to $500,000)", "Expedited withdrawals", "Access to exclusive gold offerings", "Verified badge on your profile"].map((b) => (
                     <div key={b} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                       <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.gold, flexShrink: 0 }} />
                       <span style={{ color: C.textSub, fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>{b}</span>
@@ -737,7 +672,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                 </div>
               )}
 
-              {/* KYC form — hide if already verified or pending */}
+              {/* KYC form */}
               {(kyc.status === "not_submitted" || kyc.status === "rejected") && (
                 <>
                   <hr style={{ border: "none", borderTop: `1px solid ${C.border}`, margin: 0 }} />
@@ -749,12 +684,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                       <select
                         value={kyc.id_type}
                         onChange={(e) => setKyc((k) => ({ ...k, id_type: e.target.value }))}
-                        style={{
-                          ...inputStyle,
-                          appearance: "none",
-                          paddingRight: 36,
-                          cursor: "pointer",
-                        }}
+                        style={{ ...inputStyle, appearance: "none" as any, paddingRight: 36, cursor: "pointer" }}
                         onFocus={(e) => (e.target.style.borderColor = C.gold)}
                         onBlur={(e) => (e.target.style.borderColor = C.border)}
                       >
@@ -763,77 +693,51 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                         <option value="drivers_license">Driver's License</option>
                         <option value="residence_permit">Residence Permit</option>
                       </select>
-                      <ChevronDown
-                        size={14}
-                        style={{
-                          position: "absolute",
-                          right: 12,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          color: C.textMuted,
-                          pointerEvents: "none",
-                        }}
-                      />
+                      <ChevronDown size={14} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: C.textMuted, pointerEvents: "none" }} />
                     </div>
                   </div>
 
-                  {/* Document uploads */}
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Document uploads — two columns */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                     <UploadBox
+                      uid="kyc-front"
                       label="Front of ID"
                       preview={kycFrontPreview}
-                      inputRef={frontInputRef}
                       required
-                      onChange={(e) =>
-                        handleKycFile(e, setKycFront, setKycFrontPreview)
-                      }
+                      onChange={(e) => handleKycFile(e, setKycFront, setKycFrontPreview)}
                     />
                     <UploadBox
+                      uid="kyc-back"
                       label="Back of ID"
                       preview={kycBackPreview}
-                      inputRef={backInputRef}
-                      onChange={(e) =>
-                        handleKycFile(e, setKycBack, setKycBackPreview)
-                      }
+                      onChange={(e) => handleKycFile(e, setKycBack, setKycBackPreview)}
                     />
                   </div>
 
                   <UploadBox
+                    uid="kyc-selfie"
                     label="Selfie Holding ID"
                     preview={kycSelfiePreview}
-                    inputRef={selfieInputRef}
                     required
-                    onChange={(e) =>
-                      handleKycFile(e, setKycSelfie, setKycSelfiePreview)
-                    }
+                    onChange={(e) => handleKycFile(e, setKycSelfie, setKycSelfiePreview)}
                   />
 
                   <p style={{ color: C.textMuted, fontSize: 11, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.65, margin: 0 }}>
                     📋 Accepted formats: JPG, PNG, PDF — max 10MB each. Documents must be valid, clear, and unobstructed.
                   </p>
 
-                  {/* Submit KYC */}
                   <button
                     onClick={submitKyc}
                     disabled={kycSubmitting || !kycFront || !kycSelfie}
                     style={{
-                      width: "100%",
-                      padding: "13px",
-                      borderRadius: 11,
-                      background: C.gold,
-                      color: C.btnTextColor,
-                      border: "none",
-                      fontSize: 14,
-                      fontWeight: 600,
+                      width: "100%", padding: "13px", borderRadius: 11,
+                      background: C.gold, color: C.btnTextColor,
+                      border: "none", fontSize: 14, fontWeight: 600,
                       cursor: kycSubmitting || !kycFront || !kycSelfie ? "not-allowed" : "pointer",
-                      fontFamily: "'DM Sans', sans-serif",
-                      letterSpacing: "0.05em",
+                      fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.05em",
                       opacity: kycSubmitting || !kycFront || !kycSelfie ? 0.45 : 1,
                       transition: "opacity 0.2s ease",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     }}
                   >
                     <Shield size={15} />
@@ -841,68 +745,25 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                   </button>
 
                   {kycStatus === "success" && (
-                    <div
-                      style={{
-                        background: "rgba(16,185,129,0.08)",
-                        border: "1px solid rgba(16,185,129,0.25)",
-                        borderRadius: 10,
-                        padding: "12px 16px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
+                    <div style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>
                       <CheckCircle size={15} style={{ color: "#10B981", flexShrink: 0 }} />
-                      <span style={{ color: "#10B981", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>
-                        Documents submitted! We'll review within 1–2 business days.
-                      </span>
+                      <span style={{ color: "#10B981", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>Documents submitted! We'll review within 1–2 business days.</span>
                     </div>
                   )}
                   {kycStatus === "error" && (
-                    <p style={{ color: "#F87171", fontSize: 12, fontFamily: "'DM Sans', sans-serif", margin: 0 }}>
-                      Submission failed. Please try again or contact support.
-                    </p>
+                    <p style={{ color: "#F87171", fontSize: 12, fontFamily: "'DM Sans', sans-serif", margin: 0 }}>Submission failed. Please try again or contact support.</p>
                   )}
                 </>
               )}
 
               {/* Verified state */}
               {kyc.status === "verified" && (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "32px 20px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 72,
-                      height: 72,
-                      borderRadius: "50%",
-                      background: "rgba(16,185,129,0.1)",
-                      border: "2px solid rgba(16,185,129,0.3)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 16px",
-                    }}
-                  >
+                <div style={{ textAlign: "center", padding: "32px 20px" }}>
+                  <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(16,185,129,0.1)", border: "2px solid rgba(16,185,129,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
                     <CheckCircle size={32} style={{ color: "#10B981" }} />
                   </div>
-                  <p
-                    style={{
-                      fontFamily: "'Cormorant Garamond', Georgia, serif",
-                      fontSize: 20,
-                      fontWeight: 600,
-                      color: "#10B981",
-                      margin: "0 0 8px",
-                    }}
-                  >
-                    Identity Verified
-                  </p>
-                  <p style={{ color: C.textMuted, fontSize: 13, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: 0 }}>
-                    Your account is fully verified. You have access to all investment limits and features.
-                  </p>
+                  <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 600, color: "#10B981", margin: "0 0 8px" }}>Identity Verified</p>
+                  <p style={{ color: C.textMuted, fontSize: 13, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6, margin: 0 }}>Your account is fully verified. You have access to all investment limits and features.</p>
                 </div>
               )}
             </div>
@@ -910,13 +771,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: "16px 24px",
-            borderTop: `1px solid ${C.border}`,
-            background: C.drawerBg,
-          }}
-        >
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, background: C.drawerBg }}>
           <p style={{ color: C.textMuted, fontSize: 11, textAlign: "center", margin: 0, fontFamily: "'DM Sans', sans-serif" }}>
             🔒 Your data is encrypted and protected by bank-level security
           </p>
