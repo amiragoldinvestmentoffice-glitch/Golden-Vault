@@ -17,6 +17,8 @@ import { referralsRouter } from "./routes/referrals";
 import { recurringRouter, runRecurringInvestments } from "./routes/recurring";
 import { newsletterRouter } from "./routes/newsletter";
 import { kycRouter } from "./routes/kyc";
+// ✅ NEW — import the profile router
+import { profileRouter } from "./routes/profile";
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -44,6 +46,8 @@ app.use("/api/referrals", referralsRouter);
 app.use("/api/recurring", recurringRouter);
 app.use("/api/newsletter", newsletterRouter);
 app.use("/api/kyc", kycRouter);
+// ✅ NEW — mount profile routes at /api/user/profile
+app.use("/api/user", profileRouter);
 
 setInterval(checkPriceAlerts, 5 * 60 * 1000);
 checkPriceAlerts();
