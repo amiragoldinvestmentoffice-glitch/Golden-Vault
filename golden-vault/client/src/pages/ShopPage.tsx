@@ -26,44 +26,23 @@ interface ReviewSummary {
   count: number;
 }
 
-// ── Theme system ─────────────────────────────────────────────────────────────
 const DARK = {
-  pageBg: "#06080F",
-  surfaceBg: "#0A0D18",
-  cardBg: "#0F1420",
-  text: "#EDE5D5",
-  textSub: "#8899AA",
-  textMuted: "#445566",
-  gold: "#D4A820",
-  goldLight: "#F0C940",
-  goldDark: "#A88010",
-  goldGlow: "rgba(212,168,32,0.25)",
-  border: "rgba(212,168,32,0.1)",
-  borderHover: "rgba(212,168,32,0.4)",
-  inputBg: "#07090F",
-  shadow: "0 4px 24px rgba(0,0,0,0.55)",
-  shadowHover: "0 12px 36px rgba(212,168,32,0.18)",
-  starEmpty: "#243040",
-  btnTextColor: "#0A0700",
+  pageBg: "#06080F", surfaceBg: "#0A0D18", cardBg: "#0F1420",
+  text: "#EDE5D5", textSub: "#8899AA", textMuted: "#445566",
+  gold: "#D4A820", goldLight: "#F0C940", goldDark: "#A88010",
+  goldGlow: "rgba(212,168,32,0.25)", border: "rgba(212,168,32,0.1)",
+  borderHover: "rgba(212,168,32,0.4)", inputBg: "#07090F",
+  shadow: "0 4px 24px rgba(0,0,0,0.55)", shadowHover: "0 12px 36px rgba(212,168,32,0.18)",
+  starEmpty: "#243040", btnTextColor: "#0A0700",
 };
 const LIGHT = {
-  pageBg: "#FDF8F0",
-  surfaceBg: "#FFFCF5",
-  cardBg: "#FFFFFF",
-  text: "#1A1208",
-  textSub: "#6B5534",
-  textMuted: "#9B8A60",
-  gold: "#B8880A",
-  goldLight: "#D4A820",
-  goldDark: "#8C6808",
-  goldGlow: "rgba(184,136,10,0.18)",
-  border: "rgba(184,136,10,0.18)",
-  borderHover: "rgba(184,136,10,0.5)",
-  inputBg: "#F5EDD8",
-  shadow: "0 4px 24px rgba(120,80,0,0.1)",
-  shadowHover: "0 12px 36px rgba(184,136,10,0.16)",
-  starEmpty: "#DDD0AA",
-  btnTextColor: "#FFFFFF",
+  pageBg: "#FDF8F0", surfaceBg: "#FFFCF5", cardBg: "#FFFFFF",
+  text: "#1A1208", textSub: "#6B5534", textMuted: "#9B8A60",
+  gold: "#B8880A", goldLight: "#D4A820", goldDark: "#8C6808",
+  goldGlow: "rgba(184,136,10,0.18)", border: "rgba(184,136,10,0.18)",
+  borderHover: "rgba(184,136,10,0.5)", inputBg: "#F5EDD8",
+  shadow: "0 4px 24px rgba(120,80,0,0.1)", shadowHover: "0 12px 36px rgba(184,136,10,0.16)",
+  starEmpty: "#DDD0AA", btnTextColor: "#FFFFFF",
 };
 
 const STATS = [
@@ -102,13 +81,11 @@ const FEATURES = [
   { icon: "📊", title: "Portfolio Tracking", desc: "Watch your gold investment grow with real-time valuations." },
 ];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
 function TestimonialCard({ t, C }: { t: (typeof TESTIMONIALS)[0]; C: typeof DARK }) {
   return (
     <div style={{ flexShrink: 0, width: 320, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 16, padding: "24px", display: "flex", flexDirection: "column", gap: 14, boxShadow: C.shadow }}>
       <div style={{ display: "flex", gap: 2 }}>
-        {[1, 2, 3, 4, 5].map((s) => (
+        {[1,2,3,4,5].map((s) => (
           <Star key={s} size={12} style={{ color: s <= t.rating ? C.gold : C.starEmpty, fill: s <= t.rating ? C.gold : "transparent" }} />
         ))}
       </div>
@@ -146,16 +123,12 @@ function VideoCard({ src, label, isActive, onActivate, onEnded, C }: { src: stri
       onClick={onActivate}
       style={{
         border: `1px solid ${isActive ? C.gold : C.border}`,
-        borderRadius: 12,
-        overflow: "hidden",
-        cursor: "pointer",
-        // ✅ FIX: reduced zoom from 1.04 → 1.02 so videos don't feel too large
+        borderRadius: 12, overflow: "hidden", cursor: "pointer",
         transition: "all 0.3s ease",
         transform: isActive ? "scale(1.02)" : "scale(1)",
         boxShadow: isActive ? `0 6px 24px ${C.goldGlow}` : "none",
         opacity: isActive ? 1 : 0.65,
-        position: "relative",
-        zIndex: isActive ? 2 : 1,
+        position: "relative", zIndex: isActive ? 2 : 1,
       }}
     >
       <video ref={ref} src={src} loop={false} muted={muted} playsInline onEnded={onEnded} style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", backgroundColor: "#000", display: "block" }} />
@@ -189,7 +162,6 @@ function VideoSection({ C }: { C: typeof DARK }) {
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ShopPage() {
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -212,13 +184,11 @@ export default function ShopPage() {
 
   const C = isDark ? DARK : LIGHT;
 
-  // Load KYC status for badge
   useEffect(() => {
     if (!user) return;
     api.get("/user/kyc").then((r) => setKycStatus(r.data?.status || "not_submitted")).catch(() => {});
   }, [user]);
 
-  // Close user menu on outside click
   useEffect(() => {
     if (!userMenuOpen) return;
     const close = () => setUserMenuOpen(false);
@@ -228,21 +198,18 @@ export default function ShopPage() {
 
   useEffect(() => {
     const preconnect1 = document.createElement("link");
-    preconnect1.rel = "preconnect";
-    preconnect1.href = "https://fonts.googleapis.com";
+    preconnect1.rel = "preconnect"; preconnect1.href = "https://fonts.googleapis.com";
     document.head.appendChild(preconnect1);
     const preconnect2 = document.createElement("link");
-    preconnect2.rel = "preconnect";
-    preconnect2.href = "https://fonts.gstatic.com";
-    preconnect2.crossOrigin = "anonymous";
-    document.head.appendChild(preconnect2);
+    preconnect2.rel = "preconnect"; preconnect2.href = "https://fonts.gstatic.com";
+    preconnect2.crossOrigin = "anonymous"; document.head.appendChild(preconnect2);
     const fontLink = document.createElement("link");
     fontLink.rel = "stylesheet";
-    fontLink.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Cinzel+Decorative:wght@400;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap";
+    fontLink.href = "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Cinzel+Decorative:wght@400;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=Scheherazade+New:wght@400;700&display=swap";
     document.head.appendChild(fontLink);
 
     const styleEl = document.createElement("style");
-    styleEl.id = "amira-luxury-styles-v3";
+    styleEl.id = "amira-luxury-styles-v4";
     styleEl.textContent = `
       @keyframes goldShimmer {
         0%   { background-position: -300% center; }
@@ -251,6 +218,16 @@ export default function ShopPage() {
       @keyframes goldPulse {
         0%, 100% { filter: drop-shadow(0 0  8px rgba(212,168,32,0.45)); }
         50%       { filter: drop-shadow(0 0 28px rgba(212,168,32,0.9)) drop-shadow(0 0 60px rgba(240,200,64,0.35)); }
+      }
+      @keyframes arabicGlow {
+        0%, 100% {
+          text-shadow: 0 0 10px rgba(212,168,32,0.55), 0 0 22px rgba(240,200,64,0.2);
+          filter: brightness(1);
+        }
+        50% {
+          text-shadow: 0 0 22px rgba(212,168,32,1), 0 0 55px rgba(240,200,64,0.55), 0 0 90px rgba(212,168,32,0.25);
+          filter: brightness(1.15);
+        }
       }
       @keyframes shimmerSweep {
         0%   { transform: translateX(-220%) skewX(-20deg); opacity: 0; }
@@ -276,7 +253,7 @@ export default function ShopPage() {
         animation: goldShimmer 5s linear infinite;
       }
       .amira-logo-pulse { animation: goldPulse 3.5s ease-in-out infinite; }
-      /* ✅ FIX: reduced lift from -8px to -4px */
+      .amira-arabic-glow { animation: arabicGlow 3.2s ease-in-out infinite; }
       .amira-card { transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; }
       .amira-card:hover { transform: translateY(-4px); }
       .amira-btn { position: relative; overflow: hidden; }
@@ -292,7 +269,7 @@ export default function ShopPage() {
       .amira-user-menu { animation: dropIn 0.18s ease forwards; }
     `;
     document.head.appendChild(styleEl);
-    return () => { const el = document.getElementById("amira-luxury-styles-v3"); if (el) el.remove(); };
+    return () => { const el = document.getElementById("amira-luxury-styles-v4"); if (el) el.remove(); };
   }, []);
 
   useEffect(() => {
@@ -323,8 +300,7 @@ export default function ShopPage() {
 
   const submitNewsletter = async () => {
     if (!nlName.trim() || !nlEmail.trim()) return;
-    setNlLoading(true);
-    setNlStatus("idle");
+    setNlLoading(true); setNlStatus("idle");
     try {
       const res = await api.post("/newsletter/subscribe", { name: nlName.trim(), email: nlEmail.trim() });
       const msg = res.data?.message;
@@ -352,7 +328,6 @@ export default function ShopPage() {
     transition: "border-color 0.2s ease", boxSizing: "border-box",
   };
 
-  // Display name for user chip
   const displayName = user?.name || user?.email?.split("@")[0] || "Account";
 
   return (
@@ -365,14 +340,31 @@ export default function ShopPage() {
         <div style={{ paddingTop: 52 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
 
-            {/* Logo */}
+            {/* Logo block */}
             <div>
               <div className="amira-logo-pulse" style={{ display: "inline-block" }}>
                 <h1 className="amira-gold-text" style={{ fontFamily: "'Cinzel Decorative', 'Cormorant Garamond', Georgia, serif", fontSize: "clamp(18px, 3vw, 30px)", fontWeight: 700, letterSpacing: "0.07em", margin: 0, lineHeight: 1.2 }}>
                   ✦ AMIRA AL DAHAB ✦
                 </h1>
               </div>
-              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: "italic", color: C.textSub, fontSize: 14, letterSpacing: "0.18em", marginTop: 4 }}>
+              {/* Arabic name with gold glow animation */}
+              <p
+                className="amira-arabic-glow"
+                style={{
+                  fontFamily: "'Scheherazade New', 'Noto Naskh Arabic', 'Arabic Typesetting', serif",
+                  color: C.gold,
+                  fontSize: 20,
+                  fontWeight: 700,
+                  letterSpacing: "0.04em",
+                  marginTop: 4,
+                  marginBottom: 2,
+                  direction: "rtl",
+                  lineHeight: 1.3,
+                }}
+              >
+                أميرة الذهب
+              </p>
+              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontStyle: "italic", color: C.textSub, fontSize: 13, letterSpacing: "0.18em", marginTop: 2 }}>
                 Premium Gold — Est. Dubai
               </p>
             </div>
@@ -389,10 +381,9 @@ export default function ShopPage() {
                 </div>
               )}
 
-              {/* ── Account name + logout ── */}
+              {/* Account chip */}
               {user && (
                 <div style={{ position: "relative" }}>
-                  {/* User chip — click to open dropdown */}
                   <button
                     onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); }}
                     style={{
@@ -405,16 +396,11 @@ export default function ShopPage() {
                       boxShadow: userMenuOpen ? `0 0 16px ${C.goldGlow}` : "none",
                     }}
                   >
-                    {/* Avatar circle */}
                     <div style={{ width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg, ${C.gold}30, ${C.gold}10)`, border: `1.5px solid ${C.gold}60`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
                       {displayName.slice(0, 2).toUpperCase()}
                     </div>
-
                     <div style={{ textAlign: "left" }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: C.text, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.2 }}>
-                        {displayName}
-                      </div>
-                      {/* KYC badge */}
+                      <div style={{ fontSize: 13, fontWeight: 500, color: C.text, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.2 }}>{displayName}</div>
                       {kycStatus === "verified" && (
                         <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
                           <CheckCircle size={10} style={{ color: "#10B981" }} />
@@ -434,18 +420,16 @@ export default function ShopPage() {
                         </div>
                       )}
                     </div>
-
                     <ChevronDown size={13} style={{ color: C.textMuted, flexShrink: 0, transform: userMenuOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s ease" }} />
                   </button>
 
-                  {/* Dropdown menu */}
+                  {/* Dropdown */}
                   {userMenuOpen && (
                     <div
                       className="amira-user-menu"
                       style={{
                         position: "absolute", top: "calc(100% + 8px)", right: 0,
-                        background: C.surfaceBg,
-                        border: `1px solid ${C.border}`,
+                        background: C.surfaceBg, border: `1px solid ${C.border}`,
                         borderRadius: 14, minWidth: 200, zIndex: 50,
                         boxShadow: isDark ? "0 16px 48px rgba(0,0,0,0.6)" : "0 16px 48px rgba(100,60,0,0.15)",
                         overflow: "hidden",
@@ -456,18 +440,15 @@ export default function ShopPage() {
                         <p style={{ color: C.text, fontSize: 13, fontWeight: 500, margin: 0, fontFamily: "'DM Sans', sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
                       </div>
 
-                      {/* My Account */}
                       <button
                         onClick={() => { setUserMenuOpen(false); setAccountOpen(true); }}
                         style={{ width: "100%", padding: "12px 16px", background: "transparent", border: "none", color: C.text, fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "background 0.15s ease" }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(212,168,32,0.06)" : "rgba(184,136,10,0.06)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
-                        <span style={{ fontSize: 15 }}>👤</span>
-                        My Account
+                        <span style={{ fontSize: 15 }}>👤</span> My Account
                       </button>
 
-                      {/* KYC */}
                       <button
                         onClick={() => { setUserMenuOpen(false); setAccountOpen(true); }}
                         style={{ width: "100%", padding: "12px 16px", background: "transparent", border: "none", color: C.text, fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, transition: "background 0.15s ease" }}
@@ -475,8 +456,7 @@ export default function ShopPage() {
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
                         <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ fontSize: 15 }}>🛡️</span>
-                          KYC Verification
+                          <span style={{ fontSize: 15 }}>🛡️</span> KYC Verification
                         </span>
                         {kycStatus === "verified" && <span style={{ fontSize: 10, color: "#10B981", background: "rgba(16,185,129,0.1)", padding: "2px 7px", borderRadius: 10, fontWeight: 600 }}>Verified</span>}
                         {kycStatus === "pending" && <span style={{ fontSize: 10, color: "#F59E0B", background: "rgba(245,158,11,0.1)", padding: "2px 7px", borderRadius: 10, fontWeight: 600 }}>Pending</span>}
@@ -485,15 +465,13 @@ export default function ShopPage() {
 
                       <div style={{ height: 1, background: C.border, margin: "4px 0" }} />
 
-                      {/* Logout */}
                       <button
                         onClick={() => { setUserMenuOpen(false); logout?.(); }}
                         style={{ width: "100%", padding: "12px 16px", background: "transparent", border: "none", color: "#F87171", fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "background 0.15s ease" }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(248,113,113,0.06)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
-                        <LogOut size={14} />
-                        Sign Out
+                        <LogOut size={14} /> Sign Out
                       </button>
                     </div>
                   )}
@@ -503,7 +481,6 @@ export default function ShopPage() {
               {/* Theme toggle */}
               <button
                 onClick={() => setIsDark(!isDark)}
-                title={isDark ? "Switch to light mode" : "Switch to dark mode"}
                 style={{ width: 42, height: 42, borderRadius: "50%", background: C.surfaceBg, border: `1px solid ${C.border}`, color: C.gold, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s ease", flexShrink: 0 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.gold; (e.currentTarget as HTMLButtonElement).style.boxShadow = `0 0 16px ${C.goldGlow}`; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; (e.currentTarget as HTMLButtonElement).style.boxShadow = "none"; }}
@@ -570,7 +547,6 @@ export default function ShopPage() {
                 <Link href={`/products/${product.id}`}>
                   <div style={{ height: 200, overflow: "hidden", cursor: "pointer", background: isDark ? "#070A12" : "#F5EDD8" }}>
                     {product.image_url ? (
-                      // ✅ FIX: reduced image zoom from 1.09 → 1.06
                       <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.5s ease", display: "block" }}
                         onMouseEnter={(e) => ((e.currentTarget as HTMLImageElement).style.transform = "scale(1.06)")}
                         onMouseLeave={(e) => ((e.currentTarget as HTMLImageElement).style.transform = "scale(1)")}
@@ -591,7 +567,7 @@ export default function ShopPage() {
                   <p style={{ color: C.textMuted, fontSize: 12, margin: 0 }}>{parseFloat(product.weight_grams).toFixed(1)}g</p>
                   {(reviewsSummary[product.id]?.count ?? 0) > 0 && (
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 7 }}>
-                      {[1, 2, 3, 4, 5].map((s) => (
+                      {[1,2,3,4,5].map((s) => (
                         <Star key={s} size={11} style={{ color: s <= Math.round(reviewsSummary[product.id].avgRating) ? C.gold : C.starEmpty, fill: s <= Math.round(reviewsSummary[product.id].avgRating) ? C.gold : "transparent" }} />
                       ))}
                       <span style={{ fontSize: 11, color: C.textMuted }}>({reviewsSummary[product.id].count})</span>
@@ -627,7 +603,7 @@ export default function ShopPage() {
           </p>
         </div>
 
-        {/* ── Testimonials (marquee) ── */}
+        {/* ── Testimonials ── */}
         <div style={{ marginTop: 88 }}>
           <div style={{ textAlign: "center", marginBottom: 44 }}>
             <p style={{ color: C.gold, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.28em", marginBottom: 10 }}>What Our Investors Say</p>
