@@ -118,14 +118,15 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
 
-  // KYC state
+  // KYC state — matches existing /api/kyc route (JSON, no file upload)
   const [kyc, setKyc] = useState<KYCData>({ status: "not_submitted", id_type: "passport" });
-  const [kycFront, setKycFront] = useState<File | null>(null);
-  const [kycBack, setKycBack] = useState<File | null>(null);
-  const [kycSelfie, setKycSelfie] = useState<File | null>(null);
-  const [kycFrontPreview, setKycFrontPreview] = useState("");
-  const [kycBackPreview, setKycBackPreview] = useState("");
-  const [kycSelfiePreview, setKycSelfiePreview] = useState("");
+  const [kycForm, setKycForm] = useState({
+    fullName: "",
+    country: "",
+    idType: "passport",
+    idNumber: "",
+    selfieNote: "",
+  });
   const [kycSubmitting, setKycSubmitting] = useState(false);
   const [kycStatus, setKycStatus] = useState<"idle" | "success" | "error">("idle");
 
@@ -145,8 +146,17 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
         if (d.avatar_url) setAvatarPreview(d.avatar_url);
       })
       .catch(() => {});
-    api.get("/user/kyc")
-      .then((r) => setKyc(r.data))
+    api.get("/kyc")
+      .then((r) => {
+        const d = r.data;
+        if (!d) return;
+        setKyc({
+          status: d.status === "approved" ? "verified" : (d.status ?? "not_submitted"),
+          id_type: d.id_type ?? "passport",
+          rejection_reason: d.admin_note ?? d.rejection_reason ?? undefined,
+        });
+        if (d.full_name) setKycForm(f => ({ ...f, fullName: d.full_name, idType: d.id_type ?? "passport" }));
+      })
       .catch(() => {});
   }, [isOpen, user]);
 
@@ -205,17 +215,16 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
   };
 
   const submitKyc = async () => {
-    if (!kycFront || !kycSelfie) return;
+    if (!kycForm.fullName.trim() || !kycForm.country.trim() || !kycForm.idNumber.trim()) return;
     setKycSubmitting(true);
     setKycStatus("idle");
     try {
-      const formData = new FormData();
-      formData.append("id_type", kyc.id_type);
-      formData.append("front", kycFront);
-      if (kycBack) formData.append("back", kycBack);
-      formData.append("selfie", kycSelfie);
-      await api.post("/user/kyc", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      await api.post("/kyc", {
+        fullName:   kycForm.fullName.trim(),
+        country:    kycForm.country.trim(),
+        idType:     kycForm.idType,
+        idNumber:   kycForm.idNumber.trim(),
+        selfieNote: kycForm.selfieNote.trim() || undefined,
       });
       setKyc((k) => ({ ...k, status: "pending" }));
       setKycStatus("success");
@@ -672,18 +681,40 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                 </div>
               )}
 
-              {/* KYC form */}
+              {/* KYC form — matches /api/kyc JSON schema */}
               {(kyc.status === "not_submitted" || kyc.status === "rejected") && (
                 <>
                   <hr style={{ border: "none", borderTop: `1px solid ${C.border}`, margin: 0 }} />
+
+                  {/* Full name */}
+                  <div>
+                    {fieldLabel("Full Name *")}
+                    <input type="text" placeholder="e.g. Amira Al Dahab" value={kycForm.fullName}
+                      onChange={(e) => setKycForm(f => ({ ...f, fullName: e.target.value }))}
+                      style={inputStyle}
+                      onFocus={(e) => (e.target.style.borderColor = C.gold)}
+                      onBlur={(e) => (e.target.style.borderColor = C.border)}
+                    />
+                  </div>
+
+                  {/* Country */}
+                  <div>
+                    {fieldLabel("Country *")}
+                    <input type="text" placeholder="e.g. United Arab Emirates" value={kycForm.country}
+                      onChange={(e) => setKycForm(f => ({ ...f, country: e.target.value }))}
+                      style={inputStyle}
+                      onFocus={(e) => (e.target.style.borderColor = C.gold)}
+                      onBlur={(e) => (e.target.style.borderColor = C.border)}
+                    />
+                  </div>
 
                   {/* ID type */}
                   <div>
                     {fieldLabel("ID Document Type *")}
                     <div style={{ position: "relative" }}>
                       <select
-                        value={kyc.id_type}
-                        onChange={(e) => setKyc((k) => ({ ...k, id_type: e.target.value }))}
+                        value={kycForm.idType}
+                        onChange={(e) => setKycForm(f => ({ ...f, idType: e.target.value }))}
                         style={{ ...inputStyle, appearance: "none" as any, paddingRight: 36, cursor: "pointer" }}
                         onFocus={(e) => (e.target.style.borderColor = C.gold)}
                         onBlur={(e) => (e.target.style.borderColor = C.border)}
@@ -691,51 +722,47 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                         <option value="passport">Passport</option>
                         <option value="national_id">National ID</option>
                         <option value="drivers_license">Driver's License</option>
-                        <option value="residence_permit">Residence Permit</option>
                       </select>
                       <ChevronDown size={14} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: C.textMuted, pointerEvents: "none" }} />
                     </div>
                   </div>
 
-                  {/* Document uploads — two columns */}
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                    <UploadBox
-                      uid="kyc-front"
-                      label="Front of ID"
-                      preview={kycFrontPreview}
-                      required
-                      onChange={(e) => handleKycFile(e, setKycFront, setKycFrontPreview)}
-                    />
-                    <UploadBox
-                      uid="kyc-back"
-                      label="Back of ID"
-                      preview={kycBackPreview}
-                      onChange={(e) => handleKycFile(e, setKycBack, setKycBackPreview)}
+                  {/* ID number */}
+                  <div>
+                    {fieldLabel("ID Number *")}
+                    <input type="text" placeholder="e.g. A12345678" value={kycForm.idNumber}
+                      onChange={(e) => setKycForm(f => ({ ...f, idNumber: e.target.value }))}
+                      style={inputStyle}
+                      onFocus={(e) => (e.target.style.borderColor = C.gold)}
+                      onBlur={(e) => (e.target.style.borderColor = C.border)}
                     />
                   </div>
 
-                  <UploadBox
-                    uid="kyc-selfie"
-                    label="Selfie Holding ID"
-                    preview={kycSelfiePreview}
-                    required
-                    onChange={(e) => handleKycFile(e, setKycSelfie, setKycSelfiePreview)}
-                  />
+                  {/* Selfie note */}
+                  <div>
+                    {fieldLabel("Additional Notes (optional)")}
+                    <input type="text" placeholder="e.g. Passport expires 2029, issued in UAE" value={kycForm.selfieNote}
+                      onChange={(e) => setKycForm(f => ({ ...f, selfieNote: e.target.value }))}
+                      style={inputStyle}
+                      onFocus={(e) => (e.target.style.borderColor = C.gold)}
+                      onBlur={(e) => (e.target.style.borderColor = C.border)}
+                    />
+                  </div>
 
                   <p style={{ color: C.textMuted, fontSize: 11, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.65, margin: 0 }}>
-                    📋 Accepted formats: JPG, PNG, PDF — max 10MB each. Documents must be valid, clear, and unobstructed.
+                    🔒 Your information is encrypted and reviewed manually by our compliance team within 1–2 business days.
                   </p>
 
                   <button
                     onClick={submitKyc}
-                    disabled={kycSubmitting || !kycFront || !kycSelfie}
+                    disabled={kycSubmitting || !kycForm.fullName.trim() || !kycForm.country.trim() || !kycForm.idNumber.trim()}
                     style={{
                       width: "100%", padding: "13px", borderRadius: 11,
                       background: C.gold, color: C.btnTextColor,
                       border: "none", fontSize: 14, fontWeight: 600,
-                      cursor: kycSubmitting || !kycFront || !kycSelfie ? "not-allowed" : "pointer",
+                      cursor: kycSubmitting || !kycForm.fullName.trim() || !kycForm.country.trim() || !kycForm.idNumber.trim() ? "not-allowed" : "pointer",
                       fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.05em",
-                      opacity: kycSubmitting || !kycFront || !kycSelfie ? 0.45 : 1,
+                      opacity: kycSubmitting || !kycForm.fullName.trim() || !kycForm.country.trim() || !kycForm.idNumber.trim() ? 0.45 : 1,
                       transition: "opacity 0.2s ease",
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     }}
@@ -744,7 +771,7 @@ export default function AccountDrawer({ isOpen, onClose, user, isDark }: Account
                     {kycSubmitting ? "Submitting…" : "Submit for Verification"}
                   </button>
 
-                  {kycStatus === "success" && (
+                                    {kycStatus === "success" && (
                     <div style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>
                       <CheckCircle size={15} style={{ color: "#10B981", flexShrink: 0 }} />
                       <span style={{ color: "#10B981", fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>Documents submitted! We'll review within 1–2 business days.</span>
