@@ -41,8 +41,8 @@
   }
 }
 .card img {
-  object-fit: contain !important;
-  padding: 8px;
+  object-fit: cover !important;
+  padding: 0;
 }
 /* ── Navy blue background overrides ── */
 .bg-stone-950 { background-color: #0A1628 !important; }
