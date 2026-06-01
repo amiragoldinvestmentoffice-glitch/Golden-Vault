@@ -44,7 +44,14 @@ export default function ProductPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <SEO title={product.name} description={product.description} />
+      <SEO
+  title={product.name}
+  description={product.description}
+  path={`/products/${id}`}
+  image={product.image_url}
+  price={product.price_usd}
+  type="product"
+/>
       <Link href="/">
         <span className="flex items-center gap-2 text-stone-400 hover:text-gold-400 mb-6 cursor-pointer text-sm">
           <ArrowLeft size={16} /> Back to Shop
