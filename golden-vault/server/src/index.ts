@@ -20,26 +20,114 @@ import { newsletterRouter } from "./routes/newsletter";
 import { kycRouter } from "./routes/kyc";
 import { profileRouter } from "./routes/profile";
 
-// ── Supabase client for crawler OG tag lookups ──────────────────────────────
+// ── Supabase client ──────────────────────────────────────────────────────────
 const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// ── Social media crawler detection ──────────────────────────────────────────
-const CRAWLERS = [
-  "TelegramBot",
-  "WhatsApp",
+// ── Crawler detection (case-insensitive) ─────────────────────────────────────
+const CRAWLER_PATTERNS = [
+  "telegrambot",
+  "whatsapp",
   "facebookexternalhit",
-  "Twitterbot",
-  "LinkedInBot",
-  "Slackbot",
-  "Discordbot",
-  "Googlebot",
+  "facebookcatalog",
+  "twitterbot",
+  "linkedinbot",
+  "slackbot",
+  "discordbot",
+  "googlebot",
   "bingbot",
+  "applebot",
+  "pinterest",
+  "vkshare",
+  "ogimager",     // opengraph.xyz
+  "opengraph",
+  "iframely",
+  "embedly",
+  "w3c_validator",
 ];
-const isCrawler = (ua: string) => CRAWLERS.some((c) => ua.includes(c));
+
+const isCrawler = (ua: string): boolean => {
+  const lower = ua.toLowerCase();
+  return CRAWLER_PATTERNS.some((p) => lower.includes(p));
+};
+
+// ── HTML escape (prevents broken tags from product names/descriptions) ────────
+const esc = (s: string): string =>
+  String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+// ── OG HTML builder ──────────────────────────────────────────────────────────
 const SITE_URL = "https://www.amira-al-dahab.com";
+const DEFAULT_IMAGE = "https://i.imgur.com/dfaNHce.jpeg"; // Gold Charm Bracelets — Dubai Collection
+
+function buildOgHtml({
+  title,
+  description,
+  image,
+  url,
+  type = "website",
+  priceUsd,
+}: {
+  title: string;
+  description: string;
+  image: string;
+  url: string;
+  type?: string;
+  priceUsd?: string;
+}): string {
+  const t = esc(title);
+  const d = esc(description);
+  const i = esc(image || DEFAULT_IMAGE);
+  const u = esc(url);
+
+  const priceMetaTags = priceUsd
+    ? `
+  <meta property="og:price:amount"       content="${esc(priceUsd)}"/>
+  <meta property="og:price:currency"     content="USD"/>
+  <meta property="product:price:amount"  content="${esc(priceUsd)}"/>
+  <meta property="product:price:currency" content="USD"/>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>${t}</title>
+  <meta name="description" content="${d}"/>
+
+  <!-- Open Graph -->
+  <meta property="og:site_name"    content="Amira Al Dahab"/>
+  <meta property="og:type"         content="${type}"/>
+  <meta property="og:title"        content="${t}"/>
+  <meta property="og:description"  content="${d}"/>
+  <meta property="og:image"        content="${i}"/>
+  <meta property="og:image:secure_url" content="${i}"/>
+  <meta property="og:image:width"  content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:url"          content="${u}"/>
+  <meta property="og:locale"       content="en_AE"/>${priceMetaTags}
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card"        content="summary_large_image"/>
+  <meta name="twitter:title"       content="${t}"/>
+  <meta name="twitter:description" content="${d}"/>
+  <meta name="twitter:image"       content="${i}"/>
+
+  <!-- Redirect real browsers to the SPA -->
+  <meta http-equiv="refresh" content="0;url=${u}"/>
+</head>
+<body>
+  <h1>${t}</h1>
+  <p>${d}</p>
+  <a href="${u}">View on Amira Al Dahab →</a>
+</body>
+</html>`;
+}
 
 // ── Express app ──────────────────────────────────────────────────────────────
 const app = express();
@@ -77,100 +165,99 @@ checkPriceAlerts();
 setInterval(runRecurringInvestments, 60 * 60 * 1000);
 runRecurringInvestments();
 
-// ── Production: serve React SPA + crawler OG tag middleware ─────────────────
+// ── Production: crawler middleware + React SPA ───────────────────────────────
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.resolve(process.cwd(), "..", "client", "dist");
-  app.use(express.static(clientDist));
 
-  // Intercept product page requests from social media crawlers
-  app.get("/products/:id", async (req, res, next) => {
-    const ua = req.headers["user-agent"] || "";
+  // ── CRAWLER MIDDLEWARE — must come BEFORE express.static ──────────────────
+  // Static serving would otherwise return index.html before this runs,
+  // and crawlers would see a bare HTML shell with no OG tags.
+  app.use(async (req, res, next) => {
+    // Only intercept GET requests; skip API routes
+    if (req.method !== "GET") return next();
+    if (req.path.startsWith("/api/")) return next();
+
+    const ua = req.headers["user-agent"] ?? "";
     if (!isCrawler(ua)) return next();
 
-    try {
-      const { data: product } = await supabase
-        .from("products")
-        .select("*")
-        .eq("id", req.params.id)
-        .single();
+    // ── Product page: /products/:id  or  /product/:id ──────────────────────
+    const productMatch = req.path.match(/^\/products?\/([\d]+)/);
 
-      if (!product) return next();
+    if (productMatch) {
+      const productId = productMatch[1];
+      try {
+        const { data: product, error } = await supabase
+          .from("products")
+          .select("id, name, description, price_usd, image_url, purity, weight_grams, category")
+          .eq("id", productId)
+          .single();
 
-      const title = `${product.name} | Amira Al Dahab`;
-      const productUrl = `${SITE_URL}/products/${product.id}`;
-      const price = parseFloat(product.price_usd).toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
+        if (!error && product) {
+          const priceUsd = product.price_usd ? String(product.price_usd) : undefined;
+          const priceLabel = priceUsd
+            ? ` Price: $${parseFloat(priceUsd).toLocaleString("en-US", { minimumFractionDigits: 2 })} USD.`
+            : "";
+          const category = product.category ? `${product.category} — ` : "";
+          const description =
+            product.description ||
+            `${category}Certified gold from Dubai.${priceLabel}`;
 
-      const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <title>${title}</title>
-
-  <!-- Primary Meta -->
-  <meta name="description" content="${product.description}"/>
-
-  <!-- Open Graph -->
-  <meta property="og:site_name" content="Amira Al Dahab"/>
-  <meta property="og:title" content="${title}"/>
-  <meta property="og:description" content="${product.description}"/>
-  <meta property="og:image" content="${product.image_url}"/>
-  <meta property="og:image:secure_url" content="${product.image_url}"/>
-  <meta property="og:image:width" content="1200"/>
-  <meta property="og:image:height" content="630"/>
-  <meta property="og:url" content="${productUrl}"/>
-  <meta property="og:type" content="product"/>
-  <meta property="og:locale" content="en_AE"/>
-
-  <!-- Product price -->
-  <meta property="og:price:amount" content="${product.price_usd}"/>
-  <meta property="og:price:currency" content="USD"/>
-  <meta property="product:price:amount" content="${product.price_usd}"/>
-  <meta property="product:price:currency" content="USD"/>
-
-  <!-- Twitter / X -->
-  <meta name="twitter:card" content="summary_large_image"/>
-  <meta name="twitter:title" content="${title}"/>
-  <meta name="twitter:description" content="${product.description}"/>
-  <meta name="twitter:image" content="${product.image_url}"/>
-
-  <!-- Redirect browsers to the real SPA page -->
-  <meta http-equiv="refresh" content="0;url=${productUrl}"/>
-</head>
-<body>
-  <h1>${product.name}</h1>
-  <img src="${product.image_url}" alt="${product.name}" style="max-width:600px"/>
-  <p>${product.description}</p>
-  <p><strong>Price: $${price} USD</strong></p>
-  <p>Purity: ${product.purity} &nbsp;|&nbsp; Weight: ${product.weight_grams}g</p>
-  <a href="${productUrl}">View on Amira Al Dahab →</a>
-</body>
-</html>`;
-
-      res.setHeader("Content-Type", "text/html");
-      res.send(html);
-    } catch {
-      next();
+          res.setHeader("Content-Type", "text/html");
+          return res.send(
+            buildOgHtml({
+              title: `${product.name} | Amira Al Dahab`,
+              description,
+              image: product.image_url || DEFAULT_IMAGE,
+              url: `${SITE_URL}/products/${product.id}`,
+              type: "product",
+              priceUsd,
+            })
+          );
+        }
+      } catch (err) {
+        console.error("[OG] Supabase error for product", productId, err);
+      }
+      // Product not found — fall through to default OG
     }
+
+    // ── Default OG for homepage + all other non-product pages ──────────────
+    res.setHeader("Content-Type", "text/html");
+    return res.send(
+      buildOgHtml({
+        title: "Amira Al Dahab — Premium Gold Jewellery & Investment",
+        description:
+          "Buy certified gold jewellery, bars and coins with live prices. Secure worldwide shipping from Dubai.",
+        image: DEFAULT_IMAGE,
+        url: SITE_URL,
+      })
+    );
   });
 
-  // Catch-all: serve React SPA for all other routes
+  // Static files (JS, CSS, images) — after crawler middleware
+  app.use(express.static(clientDist));
+
+  // Catch-all: serve React SPA for real browsers
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path.join(clientDist, "index.html"));
   });
 }
 
 // ── Error handler ────────────────────────────────────────────────────────────
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err);
-  if (err.name === "ZodError") {
-    res.status(400).json({ error: "Validation error", details: err.message });
-    return;
+app.use(
+  (
+    err: Error,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    console.error(err);
+    if (err.name === "ZodError") {
+      res.status(400).json({ error: "Validation error", details: err.message });
+      return;
+    }
+    res.status(500).json({ error: err.message || "Internal server error" });
   }
-  res.status(500).json({ error: err.message || "Internal server error" });
-});
+);
 
 app.listen(PORT, () => {
   console.log(`🥇 Golden Vault API running on port ${PORT}`);
