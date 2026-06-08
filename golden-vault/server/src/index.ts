@@ -26,36 +26,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// ── Crawler detection (case-insensitive) ─────────────────────────────────────
-const CRAWLER_PATTERNS = [
-  "telegrambot",
-  "whatsapp",
-  "facebookexternalhit",
-  "facebookcatalog",
-  "twitterbot",
-  "linkedinbot",
-  "slackbot",
-  "discordbot",
-  "googlebot",
-  "bingbot",
-  "applebot",
-  "pinterest",
-  "vkshare",
-  "ogimager",     // opengraph.xyz
-  "opengraph",
-  "iframely",
-  "embedly",
-  "w3c_validator",
-];
-
-const isCrawler = (ua: string): boolean => {
-  const lower = ua.toLowerCase();
-  return CRAWLER_PATTERNS.some((p) => lower.includes(p));
-};
-
-// ── HTML escape (prevents broken tags from product names/descriptions) ────────
+// ── HTML escape helper ───────────────────────────────────────────────────────
 const esc = (s: string): string =>
-  String(s)
+  String(s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
@@ -63,33 +36,42 @@ const esc = (s: string): string =>
 
 // ── OG HTML builder ──────────────────────────────────────────────────────────
 const SITE_URL = "https://www.amira-al-dahab.com";
-const DEFAULT_IMAGE = "https://i.imgur.com/dfaNHce.jpeg"; // Gold Charm Bracelets — Dubai Collection
+const DEFAULT_IMAGE = "https://i.imgur.com/dfaNHce.jpeg";
 
-function buildOgHtml({
-  title,
-  description,
-  image,
-  url,
-  type = "website",
-  priceUsd,
-}: {
-  title: string;
-  description: string;
-  image: string;
-  url: string;
-  type?: string;
-  priceUsd?: string;
+function buildProductOgHtml(product: {
+  id: number;
+  name: string;
+  description: string | null;
+  price_usd: string | number | null;
+  image_url: string | null;
+  category: string | null;
+  purity: string | null;
+  weight_grams: number | null;
 }): string {
-  const t = esc(title);
-  const d = esc(description);
-  const i = esc(image || DEFAULT_IMAGE);
-  const u = esc(url);
+  const productUrl = `${SITE_URL}/products/${product.id}`;
+  // Browsers get redirected to ?_r=1 which bypasses this middleware
+  // so the React SPA loads normally. Crawlers don't follow meta-refresh.
+  const browserRedirect = `/products/${product.id}?_r=1`;
 
-  const priceMetaTags = priceUsd
+  const title = esc(`${product.name} | Amira Al Dahab`);
+  const image = esc(product.image_url || DEFAULT_IMAGE);
+  const priceUsd = product.price_usd ? String(product.price_usd) : null;
+  const priceLabel = priceUsd
+    ? ` Price: $${parseFloat(priceUsd).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+      })} USD.`
+    : "";
+  const rawDesc =
+    product.description ||
+    `${product.category ? product.category + " — " : ""}Certified gold from Dubai.${priceLabel}`;
+  const description = esc(rawDesc);
+  const url = esc(productUrl);
+
+  const priceTags = priceUsd
     ? `
-  <meta property="og:price:amount"       content="${esc(priceUsd)}"/>
-  <meta property="og:price:currency"     content="USD"/>
-  <meta property="product:price:amount"  content="${esc(priceUsd)}"/>
+  <meta property="og:price:amount"        content="${esc(priceUsd)}"/>
+  <meta property="og:price:currency"      content="USD"/>
+  <meta property="product:price:amount"   content="${esc(priceUsd)}"/>
   <meta property="product:price:currency" content="USD"/>`
     : "";
 
@@ -97,34 +79,35 @@ function buildOgHtml({
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>${t}</title>
-  <meta name="description" content="${d}"/>
+  <title>${title}</title>
+  <meta name="description" content="${description}"/>
 
   <!-- Open Graph -->
-  <meta property="og:site_name"    content="Amira Al Dahab"/>
-  <meta property="og:type"         content="${type}"/>
-  <meta property="og:title"        content="${t}"/>
-  <meta property="og:description"  content="${d}"/>
-  <meta property="og:image"        content="${i}"/>
-  <meta property="og:image:secure_url" content="${i}"/>
-  <meta property="og:image:width"  content="1200"/>
-  <meta property="og:image:height" content="630"/>
-  <meta property="og:url"          content="${u}"/>
-  <meta property="og:locale"       content="en_AE"/>${priceMetaTags}
+  <meta property="og:site_name"        content="Amira Al Dahab"/>
+  <meta property="og:type"             content="product"/>
+  <meta property="og:title"            content="${title}"/>
+  <meta property="og:description"      content="${description}"/>
+  <meta property="og:image"            content="${image}"/>
+  <meta property="og:image:secure_url" content="${image}"/>
+  <meta property="og:image:width"      content="1200"/>
+  <meta property="og:image:height"     content="630"/>
+  <meta property="og:url"              content="${url}"/>
+  <meta property="og:locale"           content="en_AE"/>${priceTags}
 
   <!-- Twitter / X -->
   <meta name="twitter:card"        content="summary_large_image"/>
-  <meta name="twitter:title"       content="${t}"/>
-  <meta name="twitter:description" content="${d}"/>
-  <meta name="twitter:image"       content="${i}"/>
+  <meta name="twitter:title"       content="${title}"/>
+  <meta name="twitter:description" content="${description}"/>
+  <meta name="twitter:image"       content="${image}"/>
 
-  <!-- Redirect real browsers to the SPA -->
-  <meta http-equiv="refresh" content="0;url=${u}"/>
+  <!-- Redirect real browsers to the SPA (crawlers ignore meta-refresh) -->
+  <meta http-equiv="refresh" content="0;url=${browserRedirect}"/>
 </head>
 <body>
-  <h1>${t}</h1>
-  <p>${d}</p>
-  <a href="${u}">View on Amira Al Dahab →</a>
+  <h1>${title}</h1>
+  <img src="${image}" alt="${esc(product.name)}" style="max-width:600px"/>
+  <p>${description}</p>
+  <a href="${url}">View on Amira Al Dahab →</a>
 </body>
 </html>`;
 }
@@ -165,78 +148,47 @@ checkPriceAlerts();
 setInterval(runRecurringInvestments, 60 * 60 * 1000);
 runRecurringInvestments();
 
-// ── Production: crawler middleware + React SPA ───────────────────────────────
+// ── Production: OG middleware + React SPA ────────────────────────────────────
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.resolve(process.cwd(), "..", "client", "dist");
 
-  // ── CRAWLER MIDDLEWARE — must come BEFORE express.static ──────────────────
-  // Static serving would otherwise return index.html before this runs,
-  // and crawlers would see a bare HTML shell with no OG tags.
-  app.use(async (req, res, next) => {
-    // Only intercept GET requests; skip API routes
-    if (req.method !== "GET") return next();
-    if (req.path.startsWith("/api/")) return next();
+  // ── Product OG middleware ─────────────────────────────────────────────────
+  // Serves OG HTML to EVERY visitor (not just crawlers).
+  // • Crawlers (Telegram, WhatsApp, etc.) read the OG tags and stop.
+  // • Real browsers receive a meta-refresh to ?_r=1 and load the React SPA.
+  // The ?_r=1 flag on the second request skips this middleware entirely.
+  app.get("/products/:id", async (req, res, next) => {
+    // Second pass — browser was already redirected; serve the SPA
+    if (req.query._r === "1") return next();
 
-    const ua = req.headers["user-agent"] ?? "";
-    if (!isCrawler(ua)) return next();
+    const productId = req.params.id;
+    console.log(`[OG] Fetching product ${productId} for ${req.headers["user-agent"]?.slice(0, 60)}`);
 
-    // ── Product page: /products/:id  or  /product/:id ──────────────────────
-    const productMatch = req.path.match(/^\/products?\/([\d]+)/);
+    try {
+      const { data: product, error } = await supabase
+        .from("products")
+        .select("id, name, description, price_usd, image_url, category, purity, weight_grams")
+        .eq("id", productId)
+        .single();
 
-    if (productMatch) {
-      const productId = productMatch[1];
-      try {
-        const { data: product, error } = await supabase
-          .from("products")
-          .select("id, name, description, price_usd, image_url, purity, weight_grams, category")
-          .eq("id", productId)
-          .single();
-
-        if (!error && product) {
-          const priceUsd = product.price_usd ? String(product.price_usd) : undefined;
-          const priceLabel = priceUsd
-            ? ` Price: $${parseFloat(priceUsd).toLocaleString("en-US", { minimumFractionDigits: 2 })} USD.`
-            : "";
-          const category = product.category ? `${product.category} — ` : "";
-          const description =
-            product.description ||
-            `${category}Certified gold from Dubai.${priceLabel}`;
-
-          res.setHeader("Content-Type", "text/html");
-          return res.send(
-            buildOgHtml({
-              title: `${product.name} | Amira Al Dahab`,
-              description,
-              image: product.image_url || DEFAULT_IMAGE,
-              url: `${SITE_URL}/products/${product.id}`,
-              type: "product",
-              priceUsd,
-            })
-          );
-        }
-      } catch (err) {
-        console.error("[OG] Supabase error for product", productId, err);
+      if (error || !product) {
+        console.log(`[OG] Product ${productId} not found — falling through`);
+        return next();
       }
-      // Product not found — fall through to default OG
-    }
 
-    // ── Default OG for homepage + all other non-product pages ──────────────
-    res.setHeader("Content-Type", "text/html");
-    return res.send(
-      buildOgHtml({
-        title: "Amira Al Dahab — Premium Gold Jewellery & Investment",
-        description:
-          "Buy certified gold jewellery, bars and coins with live prices. Secure worldwide shipping from Dubai.",
-        image: DEFAULT_IMAGE,
-        url: SITE_URL,
-      })
-    );
+      console.log(`[OG] Serving OG page for: ${product.name}`);
+      res.setHeader("Content-Type", "text/html");
+      return res.send(buildProductOgHtml(product));
+    } catch (err) {
+      console.error("[OG] Supabase error:", err);
+      return next();
+    }
   });
 
-  // Static files (JS, CSS, images) — after crawler middleware
+  // Static assets (JS, CSS, images)
   app.use(express.static(clientDist));
 
-  // Catch-all: serve React SPA for real browsers
+  // Catch-all: React SPA for all other routes
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path.join(clientDist, "index.html"));
   });
