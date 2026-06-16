@@ -2,10 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { Link } from "wouter";
-import { ShoppingCart, Search, Star, Mail, Sun, Moon, LogOut, ChevronDown, Shield, CheckCircle } from "lucide-react";
+import { ShoppingCart, Search, Star, Mail, Sun, Moon } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import SEO from "../components/SEO";
-import AccountDrawer from "./AccountDrawer";
 
 const CATEGORIES = ["all", "bar", "coin", "jewelry"] as const;
 
@@ -165,7 +164,7 @@ function VideoSection({ C }: { C: typeof DARK }) {
 export default function ShopPage() {
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const { user, logout } = useAuth() as any;
+  const { user } = useAuth() as any;
   const qc = useQueryClient();
 
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -173,28 +172,12 @@ export default function ShopPage() {
     catch { return true; }
   });
 
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [kycStatus, setKycStatus] = useState<string>("not_submitted");
-
   const [nlName, setNlName] = useState("");
   const [nlEmail, setNlEmail] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
   const [nlStatus, setNlStatus] = useState<"idle" | "success" | "already" | "error">("idle");
 
   const C = isDark ? DARK : LIGHT;
-
-  useEffect(() => {
-    if (!user) return;
-    api.get("/user/kyc").then((r) => setKycStatus(r.data?.status || "not_submitted")).catch(() => {});
-  }, [user]);
-
-  useEffect(() => {
-    if (!userMenuOpen) return;
-    const close = () => setUserMenuOpen(false);
-    setTimeout(() => window.addEventListener("click", close), 0);
-    return () => window.removeEventListener("click", close);
-  }, [userMenuOpen]);
 
   useEffect(() => {
     const preconnect1 = document.createElement("link");
@@ -266,7 +249,6 @@ export default function ShopPage() {
       .amira-cert { animation: borderGlow 4s ease-in-out infinite; }
       .amira-rule { height: 1px; background: linear-gradient(90deg, transparent, #D4A820, transparent); opacity: 0.35; border: none; margin: 0; }
       .amira-vbar { width: 3px; height: 22px; border-radius: 3px; background: linear-gradient(to bottom, #D4A820, #7A5C08); flex-shrink: 0; }
-      .amira-user-menu { animation: dropIn 0.18s ease forwards; }
     `;
     document.head.appendChild(styleEl);
     return () => { const el = document.getElementById("amira-luxury-styles-v4"); if (el) el.remove(); };
@@ -328,8 +310,6 @@ export default function ShopPage() {
     transition: "border-color 0.2s ease", boxSizing: "border-box",
   };
 
-  const displayName = user?.name || user?.email?.split("@")[0] || "Account";
-
   return (
     <div style={{ backgroundColor: C.pageBg, color: C.text, fontFamily: "'DM Sans', -apple-system, sans-serif", minHeight: "100vh", transition: "background-color 0.4s ease, color 0.4s ease" }}>
       <SEO title="Shop Premium Gold" description="Browse investment-grade gold bars, coins and bullion. Live spot prices. Secure shipping worldwide from Dubai." path="/" />
@@ -347,19 +327,12 @@ export default function ShopPage() {
                   ✦ AMIRA AL DAHAB ✦
                 </h1>
               </div>
-              {/* Arabic name with gold glow animation */}
               <p
                 className="amira-arabic-glow"
                 style={{
                   fontFamily: "'Scheherazade New', 'Noto Naskh Arabic', 'Arabic Typesetting', serif",
-                  color: C.gold,
-                  fontSize: 20,
-                  fontWeight: 700,
-                  letterSpacing: "0.04em",
-                  marginTop: 4,
-                  marginBottom: 2,
-                  direction: "rtl",
-                  lineHeight: 1.3,
+                  color: C.gold, fontSize: 20, fontWeight: 700, letterSpacing: "0.04em",
+                  marginTop: 4, marginBottom: 2, direction: "rtl", lineHeight: 1.3,
                 }}
               >
                 أميرة الذهب
@@ -369,7 +342,7 @@ export default function ShopPage() {
               </p>
             </div>
 
-            {/* Right controls */}
+            {/* Right controls — spot price + theme toggle only */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
 
               {/* Spot price */}
@@ -378,103 +351,6 @@ export default function ShopPage() {
                   <span style={{ color: C.textMuted }}>Spot</span>
                   <span style={{ color: C.gold, fontWeight: 600 }}>${parseFloat(price.perOz).toLocaleString()}/oz</span>
                   <span style={{ color: C.textMuted, fontSize: 11 }}>${parseFloat(price.perGram).toFixed(2)}/g</span>
-                </div>
-              )}
-
-              {/* Account chip */}
-              {user && (
-                <div style={{ position: "relative" }}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setUserMenuOpen(!userMenuOpen); }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "8px 14px 8px 10px",
-                      background: C.surfaceBg,
-                      border: `1px solid ${userMenuOpen ? C.gold : C.border}`,
-                      borderRadius: 12, cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      boxShadow: userMenuOpen ? `0 0 16px ${C.goldGlow}` : "none",
-                    }}
-                  >
-                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg, ${C.gold}30, ${C.gold}10)`, border: `1.5px solid ${C.gold}60`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: C.gold, fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
-                      {displayName.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div style={{ textAlign: "left" }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: C.text, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.2 }}>{displayName}</div>
-                      {kycStatus === "verified" && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
-                          <CheckCircle size={10} style={{ color: "#10B981" }} />
-                          <span style={{ fontSize: 10, color: "#10B981", fontFamily: "'DM Sans', sans-serif" }}>Verified</span>
-                        </div>
-                      )}
-                      {kycStatus === "not_submitted" && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
-                          <Shield size={10} style={{ color: C.textMuted }} />
-                          <span style={{ fontSize: 10, color: C.textMuted, fontFamily: "'DM Sans', sans-serif" }}>Not verified</span>
-                        </div>
-                      )}
-                      {kycStatus === "pending" && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
-                          <Shield size={10} style={{ color: "#F59E0B" }} />
-                          <span style={{ fontSize: 10, color: "#F59E0B", fontFamily: "'DM Sans', sans-serif" }}>KYC pending</span>
-                        </div>
-                      )}
-                    </div>
-                    <ChevronDown size={13} style={{ color: C.textMuted, flexShrink: 0, transform: userMenuOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s ease" }} />
-                  </button>
-
-                  {/* Dropdown */}
-                  {userMenuOpen && (
-                    <div
-                      className="amira-user-menu"
-                      style={{
-                        position: "absolute", top: "calc(100% + 8px)", right: 0,
-                        background: C.surfaceBg, border: `1px solid ${C.border}`,
-                        borderRadius: 14, minWidth: 200, zIndex: 50,
-                        boxShadow: isDark ? "0 16px 48px rgba(0,0,0,0.6)" : "0 16px 48px rgba(100,60,0,0.15)",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}` }}>
-                        <p style={{ color: C.textMuted, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 3px", fontFamily: "'DM Sans', sans-serif" }}>Signed in as</p>
-                        <p style={{ color: C.text, fontSize: 13, fontWeight: 500, margin: 0, fontFamily: "'DM Sans', sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
-                      </div>
-
-                      <button
-                        onClick={() => { setUserMenuOpen(false); setAccountOpen(true); }}
-                        style={{ width: "100%", padding: "12px 16px", background: "transparent", border: "none", color: C.text, fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "background 0.15s ease" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(212,168,32,0.06)" : "rgba(184,136,10,0.06)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      >
-                        <span style={{ fontSize: 15 }}>👤</span> My Account
-                      </button>
-
-                      <button
-                        onClick={() => { setUserMenuOpen(false); setAccountOpen(true); }}
-                        style={{ width: "100%", padding: "12px 16px", background: "transparent", border: "none", color: C.text, fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, transition: "background 0.15s ease" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = isDark ? "rgba(212,168,32,0.06)" : "rgba(184,136,10,0.06)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      >
-                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <span style={{ fontSize: 15 }}>🛡️</span> KYC Verification
-                        </span>
-                        {kycStatus === "verified" && <span style={{ fontSize: 10, color: "#10B981", background: "rgba(16,185,129,0.1)", padding: "2px 7px", borderRadius: 10, fontWeight: 600 }}>Verified</span>}
-                        {kycStatus === "pending" && <span style={{ fontSize: 10, color: "#F59E0B", background: "rgba(245,158,11,0.1)", padding: "2px 7px", borderRadius: 10, fontWeight: 600 }}>Pending</span>}
-                        {kycStatus === "not_submitted" && <span style={{ fontSize: 10, color: C.textMuted, background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", padding: "2px 7px", borderRadius: 10 }}>Required</span>}
-                      </button>
-
-                      <div style={{ height: 1, background: C.border, margin: "4px 0" }} />
-
-                      <button
-                        onClick={() => { setUserMenuOpen(false); logout?.(); }}
-                        style={{ width: "100%", padding: "12px 16px", background: "transparent", border: "none", color: "#F87171", fontSize: 13, fontFamily: "'DM Sans', sans-serif", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10, transition: "background 0.15s ease" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(248,113,113,0.06)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      >
-                        <LogOut size={14} /> Sign Out
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -720,9 +596,6 @@ export default function ShopPage() {
           </div>
         </div>
       </div>
-
-      {/* ── Account Drawer ── */}
-      <AccountDrawer isOpen={accountOpen} onClose={() => setAccountOpen(false)} user={user} isDark={isDark} />
     </div>
   );
 }
